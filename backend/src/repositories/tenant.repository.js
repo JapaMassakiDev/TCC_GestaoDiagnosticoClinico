@@ -64,7 +64,7 @@ class TenantRepository {
         ];
 
         return new Promise((resolve, reject) => {
-            models.orm.doBatch(queries, (err) => {
+            models.doBatch(queries, (err) => {
                 if (err) return reject(err);
                 resolve(tenantId);
             });

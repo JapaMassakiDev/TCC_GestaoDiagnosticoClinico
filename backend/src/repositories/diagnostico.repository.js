@@ -51,7 +51,7 @@ class DiagnosticoRepository {
         ];
 
         return new Promise((resolve, reject) => {
-            models.orm.doBatch(queries, (err) => {
+            models.doBatch(queries, (err) => {
                 if (err) return reject(err);
                 resolve(id);
             });
@@ -125,7 +125,7 @@ class DiagnosticoRepository {
         ];
 
         return new Promise((resolve, reject) => {
-            models.orm.doBatch(queries, (err) => {
+            models.doBatch(queries, (err) => {
                 if (err) return reject(err);
                 resolve(dId);
             });

@@ -4,8 +4,9 @@
   "description": "TCC Health App Backend",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
+    "sync": "node src/config/sync.js",
+    "start": "npm run sync && node server.js",
+    "dev": "npm run sync && nodemon server.js",
     "test": "jest"
   },
   "dependencies": {
