@@ -118,7 +118,7 @@ Scan QR code
 ```
 Escanea o QR code gerado pelo terminal descrito do tópico "**5.2 Execução**"
 
- Pronto! Sua aplicação completa do seu TCC estará em funcionamento!
+Pronto! Sua aplicação completa do seu TCC estará em funcionamento!
 
 ---
 
