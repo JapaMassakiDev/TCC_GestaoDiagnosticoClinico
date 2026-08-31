@@ -97,18 +97,28 @@ Abra uma **nova janela do terminal** (mantenha a API e o Cassandra rodando na ja
 cd frontend
 ```
 
-### 5.1. Instalação
+### 5.1. Instalação das Dependências
+Instale todos os pacotes necessários:
 ```bash
 npm install
 ```
 
 ### 5.2. Execução
-O frontend utiliza `Vite` como empacotador veloz. Para iniciá-lo, rode:
+O frontend utiliza `Metro` como compilador do framework Expo. Para iniciá-lo, rode:
 ```bash
-npm run dev
+npx expo start
 ```
 
-O terminal exibirá uma URL (geralmente `http://localhost:5173/`). Acesse pelo navegador e a aplicação completa do seu TCC estará em funcionamento!
+O terminal exibirá uma URL (geralmente `http://localhost:8081/`), na qual, ao clicar será direcionado para o navegador
+
+### 5.3 Execução no Expo Go (Opcional)
+O projeto oferece suporte mobile. Caso queira utilizar como aplicativo, baixe o Expo Go na **[App Store](https://apps.apple.com/br/app/expo-go/id982107779)** (IOS) ou **[Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent&hl=pt_BR)** (Android) e clica no botão:
+```bash
+Scan QR code
+```
+Escanea o QR code gerado pelo terminal descrito do tópico "**5.2 Execução**"
+
+ Pronto! Sua aplicação completa do seu TCC estará em funcionamento!
 
 ---
 
