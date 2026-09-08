@@ -2,8 +2,10 @@ const request = require('supertest');
 const app = require('../src/app');
 const tenantRepository = require('../src/repositories/tenant.repository');
 const jwt = require('jsonwebtoken');
+const integrationsService = require('../src/services/integrations.service');
 
 jest.mock('../src/repositories/tenant.repository');
+jest.mock('../src/services/integrations.service');
 
 describe('Cadastro de Instituição (Tenant)', () => {
     let token;
@@ -15,6 +17,8 @@ describe('Cadastro de Instituição (Tenant)', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        integrationsService.fetchCnpj.mockResolvedValue({});
+        integrationsService.fetchCep.mockResolvedValue({});
     });
 
     it('deve bloquear a requisição se não enviar token (401)', async () => {

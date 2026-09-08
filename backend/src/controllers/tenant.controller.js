@@ -13,7 +13,8 @@ const criarTenant = async (req, res) => {
             error.message.includes('inválido') || 
             error.message.includes('obrigatório') || 
             error.message.includes('já cadastrado') ||
-            error.message.includes('exatamente')
+            error.message.includes('exatamente') ||
+            error.message.includes('Receita Federal')
         ) {
             return res.status(400).json({ error: error.message });
         }

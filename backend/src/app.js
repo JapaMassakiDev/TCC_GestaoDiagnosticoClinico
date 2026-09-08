@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth.routes');
 const tenantRoutes = require('./routes/tenant.routes');
 const diagnosticoRoutes = require('./routes/diagnostico.routes');
 const pacienteRoutes = require('./routes/paciente.routes');
+const integrationsRoutes = require('./routes/integrations.routes');
 
 const app = express();
 
@@ -17,5 +18,6 @@ app.use('/auth', authRoutes);
 app.use('/tenants', tenantRoutes);
 app.use('/diagnosticos', diagnosticoRoutes);
 app.use('/pacientes', pacienteRoutes);
+app.use('/integrations', integrationsRoutes);
 
 module.exports = app;

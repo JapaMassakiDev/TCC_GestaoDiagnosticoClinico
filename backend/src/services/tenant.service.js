@@ -1,9 +1,26 @@
 const tenantRepository = require('../repositories/tenant.repository');
+const integrationsService = require('./integrations.service');
 
 class TenantService {
-    async criarTenant({ cnpj, razao_social, nome_fantasia }, usuarioId) {
+    async criarTenant({ cnpj, razao_social, nome_fantasia, cep }, usuarioId) {
         if (!cnpj || cnpj.length !== 14 || !/^\d+$/.test(cnpj)) {
             throw new Error('CNPJ inválido. Deve conter exatamente 14 dígitos.');
+        }
+
+        // Valida CNPJ na Receita Federal
+        try {
+            await integrationsService.fetchCnpj(cnpj);
+        } catch (err) {
+            throw new Error('CNPJ não encontrado ou inválido na Receita Federal.');
+        }
+
+        // Se houver CEP no cadastro, validamos via ViaCEP
+        if (cep) {
+            try {
+                await integrationsService.fetchCep(cep);
+            } catch (err) {
+                throw new Error('O CEP fornecido é inválido ou não foi encontrado.');
+            }
         }
 
         if (!razao_social || !nome_fantasia) {

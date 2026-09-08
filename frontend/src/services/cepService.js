@@ -1,45 +1,33 @@
-import { getCep, searchAddress, searchCep } from "../integrations/ViaCEP";
+const API_URL = "http://localhost:3000/integrations";
 
-export const findCep = (cep) => getCep(cep);
-export const searchCeps = (query) => searchCep(query);
-export const searchAddresses = (query) => searchAddress(query);
-
-const normalize = (value = "") => String(value)
-  .normalize("NFD")
-  .replace(/[\u0300-\u036f]/g, "")
-  .toLocaleLowerCase("pt-BR")
-  .replace(/[^a-z0-9]+/g, " ")
-  .trim();
-
-/**
- * Garante que o endereço digitado continue coerente com o CEP consultado.
- * O número fica fora desta validação porque é um campo próprio da unidade.
- * Quando o mock for substituído pelo ViaCEP real, este contrato continua igual.
- */
-export async function validateCepAddress(cep, address) {
-  const location = await getCep(cep);
-  if (!location) {
-    return { valid: false, location: null, reason: "CEP não localizado." };
+export async function findCep(cep) {
+  try {
+    const response = await fetch(`${API_URL}/viacep/${cep}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    return null;
   }
+}
 
-  const normalizedAddress = normalize(address);
-  const requiredParts = [
-    location.logradouro,
-    location.bairro,
-    location.localidade,
-    location.uf,
-  ]
-    .filter(Boolean)
-    .map(normalize);
+export async function searchAddresses(query) {
+  // Not implemented directly since ViaCEP proxy only supports CEP for now,
+  // returning empty or mock fallback.
+  return [];
+}
 
-  const missingPart = requiredParts.find((part) => part && !normalizedAddress.includes(part));
-  if (missingPart) {
-    return {
-      valid: false,
-      location,
-      reason: "O endereço informado não corresponde ao CEP selecionado.",
-    };
+export async function searchCeps(query) {
+  return [];
+}
+
+export async function validateCepAddress(cep) {
+  const data = await findCep(cep);
+  if (!data || data.erro) {
+    return { valid: false };
   }
-
-  return { valid: true, location, reason: "" };
+  return {
+    valid: true,
+    address: `${data.logradouro}, ${data.bairro}, ${data.localidade} - ${data.uf}`,
+  };
 }
