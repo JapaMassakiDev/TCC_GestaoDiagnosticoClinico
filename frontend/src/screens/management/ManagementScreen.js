@@ -1,176 +1,166 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { Alert, Image, Pressable, Text, View } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
-
+import React, { useCallback, useState } from "react";
+import { Alert, Modal, Pressable, Text, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import Screen from "../../components/Screen";
 import AppInput from "../../components/AppInput";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useAuth } from "../../contexts/AuthContext";
 import {
-  addDoctorByCpf,
-  getClinic,
-  getClinicStats,
-  removeDoctor,
-  updateClinic
-} from "../../services/clinicService";
-import { maskCPF, onlyDigits } from "../../utils/masks";
-
-function Kpi({ label, value, icon }) {
-  return (
-    <View className="min-w-[47%] flex-1 rounded-3xl border border-mint-100 bg-white p-4">
-      <Ionicons name={icon} size={24} color="#3F8F68" />
-      <Text className="mt-4 text-3xl font-black text-ink">{value}</Text>
-      <Text className="mt-1 text-sm text-slate-500">{label}</Text>
-    </View>
-  );
-}
+  addDoctorToUnit,
+  getOwnerDashboard,
+  removeDoctorFromUnit,
+} from "../../services/managementService";
+import { maskCRM, maskPhone } from "../../utils/masks";
 
 export default function ManagementScreen() {
-  const [clinic, setClinic] = useState(null);
-  const [stats, setStats] = useState(null);
-  const [name, setName] = useState("");
-  const [address, setAddress] = useState("");
-  const [logoUri, setLogoUri] = useState(null);
-  const [doctorCpf, setDoctorCpf] = useState("");
+  const { user } = useAuth();
+  const [data, setData] = useState(null);
+  const [modal, setModal] = useState(false);
+  const [crm, setCrm] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
-    const [clinicData, statsData] = await Promise.all([
-      getClinic(),
-      getClinicStats()
-    ]);
-
-    setClinic(clinicData);
-    setStats(statsData);
-    setName(clinicData.name || "");
-    setAddress(clinicData.address || "");
-    setLogoUri(clinicData.logoUri || null);
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  async function selectLogo() {
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert("Permissão", "Autorize o acesso às imagens para selecionar a logo.");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8
-    });
-
-    if (!result.canceled) {
-      setLogoUri(result.assets[0].uri);
-    }
-  }
-
-  async function saveClinic() {
-    await updateClinic({ name, address, logoUri });
-    Alert.alert("Unidade", "Dados salvos no mock.");
-    load();
-  }
-
-  async function addDoctor() {
     try {
-      if (onlyDigits(doctorCpf).length !== 11) {
-        Alert.alert("CPF", "Digite o CPF do médico.");
-        return;
-      }
-
-      await addDoctorByCpf(doctorCpf);
-      setDoctorCpf("");
-      load();
+      setData(await getOwnerDashboard(user.id));
     } catch (error) {
-      Alert.alert("Médico", error.message);
+      Alert.alert("Gestão", error.message);
+    }
+  }, [user.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
+
+  async function add() {
+    try {
+      setLoading(true);
+      await addDoctorToUnit(user.id, crm);
+      setCrm("");
+      setModal(false);
+      await load();
+    } catch (error) {
+      Alert.alert("CRM", error.message);
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function deleteDoctor(id) {
-    await removeDoctor(id);
-    load();
+  function remove(doc) {
+    Alert.alert(
+      "Excluir vínculo",
+      `Deseja desvincular ${doc.name} desta unidade? O histórico de consultas será preservado.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Desvincular",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeDoctorFromUnit(user.id, doc.id);
+              await load();
+            } catch (error) {
+              Alert.alert("Gestão", error.message);
+            }
+          },
+        },
+      ],
+    );
+  }
+
+  if (!data) {
+    return (
+      <Screen>
+        <Text>Carregando...</Text>
+      </Screen>
+    );
   }
 
   return (
     <Screen>
-      <Text className="mt-2 text-3xl font-black text-ink">Gestão da unidade</Text>
-      <Text className="mt-2 leading-6 text-slate-500">
-        Cadastre a unidade, vincule médicos e acompanhe os principais números.
-      </Text>
-
-      <View className="my-5 flex-row flex-wrap gap-3">
-        <Kpi label="Consultas realizadas" value={stats?.totalAppointments ?? "-"} icon="checkmark-done-outline" />
-        <Kpi label="Consultas no mês" value={stats?.thisMonth ?? "-"} icon="calendar-outline" />
-        <Kpi label="Médicos ativos" value={stats?.activeDoctors ?? "-"} icon="people-outline" />
-      </View>
-
-      <View className="mb-5 rounded-[28px] border border-mint-100 bg-white p-5">
-        <Text className="mb-4 text-xl font-extrabold text-ink">Dados da unidade</Text>
-
-        <Pressable
-          onPress={selectLogo}
-          className="mb-5 h-28 items-center justify-center overflow-hidden rounded-3xl border border-dashed border-mint-300 bg-mint-50"
-        >
-          {logoUri ? (
-            <Image source={{ uri: logoUri }} className="h-full w-full" resizeMode="contain" />
-          ) : (
-            <>
-              <Ionicons name="image-outline" size={30} color="#3F8F68" />
-              <Text className="mt-2 font-semibold text-mint-700">Anexar logo</Text>
-            </>
-          )}
-        </Pressable>
-
-        <AppInput label="Nome da unidade" value={name} onChangeText={setName} placeholder="Clínica Vida Verde" />
-        <AppInput label="Endereço completo" value={address} onChangeText={setAddress} placeholder="Rua, número, bairro, cidade/UF" />
-
-        <PrimaryButton title="Salvar unidade" onPress={saveClinic} />
-      </View>
-
-      <View className="rounded-[28px] border border-mint-100 bg-white p-5">
-        <Text className="text-xl font-extrabold text-ink">Médicos vinculados</Text>
-        <Text className="mb-4 mt-1 text-sm text-slate-500">
-          No mock, use o CPF 987.654.321-00.
+      <View className="mx-auto w-full max-w-[1000px]">
+        <Text className="mt-2 text-3xl font-black text-ink">Gestão</Text>
+        <Text className="mt-2 text-slate-500">
+          Indicadores da unidade e gerenciamento do corpo clínico por CRM.
         </Text>
 
-        <AppInput
-          label="CPF do médico"
-          value={doctorCpf}
-          onChangeText={(value) => setDoctorCpf(maskCPF(value))}
-          keyboardType="numeric"
-          maxLength={14}
-          placeholder="000.000.000-00"
-        />
+        <View className="mt-6 flex-row flex-wrap gap-4">
+          <View className="min-w-[220px] flex-1 rounded-3xl bg-mint-600 p-5 hover:shadow-xl transition-all duration-200">
+            <Text className="text-sm font-bold uppercase text-mint-100">Consultas realizadas</Text>
+            <Text className="mt-2 text-4xl font-black text-white">{data.totalConsultations}</Text>
+            <Text className="mt-1 text-mint-100">Total da unidade</Text>
+          </View>
+          <View className="min-w-[220px] flex-1 rounded-3xl border border-mint-100 bg-white p-5 hover:shadow-xl transition-all duration-200">
+            <Text className="text-sm font-bold uppercase text-slate-400">Médicos vinculados</Text>
+            <Text className="mt-2 text-4xl font-black text-ink">{data.doctors.length}</Text>
+            <Text className="mt-1 text-slate-500">Corpo clínico ativo</Text>
+          </View>
+        </View>
 
-        <PrimaryButton title="Adicionar médico" onPress={addDoctor} variant="secondary" />
+        <View className="mt-5 rounded-3xl border border-mint-100 bg-white p-5 hover:shadow-xl transition-all duration-200">
+          <Text className="text-xl font-black text-ink">{data.unit?.name}</Text>
+          <Text className="mt-1 text-slate-500">
+            {data.unit?.address}
+            {data.unit?.number ? `, ${data.unit.number}` : ""} · {maskPhone(data.unit?.phone || "")}
+          </Text>
+        </View>
 
-        <View className="mt-5">
-          {clinic?.doctorObjects?.map((doctor) => (
+        <View className="mt-5 rounded-3xl border border-mint-100 bg-white p-5 hover:shadow-xl transition-all duration-200">
+          <View className="mb-5 flex-row items-center justify-between">
+            <View>
+              <Text className="text-xl font-black text-ink">Médicos adicionados</Text>
+              <Text className="mt-1 text-slate-500">Adicionar ou remover vínculos sem apagar histórico.</Text>
+            </View>
+            <Pressable onPress={() => setModal(true)} className="rounded-xl bg-mint-600 px-4 py-3">
+              <Text className="font-bold text-white">+ Adicionar</Text>
+            </Pressable>
+          </View>
+
+          {data.doctors.map((doc) => (
             <View
-              key={doctor.id}
-              className="mb-3 flex-row items-center rounded-2xl bg-mint-50 p-4"
+              key={doc.id}
+              className="mb-3 flex-row items-center justify-between rounded-2xl bg-mint-50 p-4 hover:shadow-xl transition-all duration-200"
             >
-              <View className="h-11 w-11 items-center justify-center rounded-full bg-mint-200">
-                <Ionicons name="person" size={21} color="#357257" />
+              <View className="flex-1">
+                <Text className="font-black text-ink">{doc.name}</Text>
+                <Text className="mt-1 text-sm text-slate-500">
+                  CRM {doc.crm} · {doc.diagnosisCount} consulta(s)
+                </Text>
               </View>
-
-              <View className="ml-3 flex-1">
-                <Text className="font-bold text-ink">{doctor.name}</Text>
-                <Text className="text-sm text-slate-500">CRM {doctor.crm}</Text>
-              </View>
-
-              <Pressable onPress={() => deleteDoctor(doctor.id)} className="p-2">
-                <Ionicons name="trash-outline" size={22} color="#C15A5A" />
+              <Pressable onPress={() => remove(doc)} className="rounded-xl bg-white px-3 py-2">
+                <Text className="font-bold text-red-500">Excluir</Text>
               </Pressable>
             </View>
           ))}
+
+          {!data.doctors.length ? (
+            <Text className="py-6 text-center text-slate-400">Nenhum médico vinculado.</Text>
+          ) : null}
         </View>
       </View>
+
+      <Modal transparent animationType="fade" visible={modal} onRequestClose={() => setModal(false)}>
+        <View className="flex-1 items-center justify-center bg-black/30 p-5">
+          <View className="w-full max-w-[460px] rounded-3xl bg-white p-6 hover:shadow-xl transition-all duration-200">
+            <Text className="text-2xl font-black text-ink">Adicionar médico</Text>
+            <Text className="mb-5 mt-2 text-slate-500">Informe o CRM de um médico já cadastrado.</Text>
+            <AppInput
+              label="CRM"
+              value={crm}
+              onChangeText={(value) => setCrm(maskCRM(value))}
+              keyboardType="numeric"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="123456"
+            />
+            <View className="gap-3">
+              <PrimaryButton title={loading ? "Adicionando..." : "Adicionar médico"} onPress={add} disabled={loading} />
+              <PrimaryButton title="Cancelar" variant="secondary" onPress={() => setModal(false)} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Screen>
   );
 }

@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useState } from "react";
-import { loginWithCpf, registerUser } from "../services/authService";
-
+import { loginWithCpf, registerUser, updateProfile } from "../services/authService";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -12,46 +11,38 @@ export function AuthProvider({ children }) {
     setLoading(true);
     try {
       const data = await loginWithCpf({ cpf, password });
-      setUser(data.user);
+      setUser({ ...data.user });
       setToken(data.token);
       return data;
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
   async function signUp(payload) {
     setLoading(true);
     try {
       const data = await registerUser(payload);
-      setUser(data.user);
+      setUser({ ...data.user });
       setToken(data.token);
       return data;
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   }
 
-  function signOut() {
-    setUser(null);
-    setToken(null);
+  async function saveProfile(payload) {
+    setLoading(true);
+    try {
+      const data = await updateProfile(user.id, payload);
+      setUser({ ...data.user });
+      return data.user;
+    } finally { setLoading(false); }
   }
 
-  return (
-    <AuthContext.Provider
-      value={{ user, token, loading, signIn, signUp, signOut }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  function signOut() { setUser(null); setToken(null); }
+
+  return <AuthContext.Provider value={{ user, token, loading, signIn, signUp, saveProfile, signOut }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth deve ser usado dentro de AuthProvider.");
-  }
-
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth deve ser usado dentro de AuthProvider");
+  return ctx;
 }

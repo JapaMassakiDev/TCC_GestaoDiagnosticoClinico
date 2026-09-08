@@ -1,3 +1,4 @@
+// Banco mockado único. Trocar os services por HTTP quando o backend existir.
 export const mockUsers = [
   {
     id: "patient-1",
@@ -5,7 +6,21 @@ export const mockUsers = [
     name: "Ana Martins",
     email: "ana@teste.com",
     cpf: "12345678901",
-    password: "123456"
+    password: "123456",
+    sex: "Feminino",
+    phone: "14999887766",
+    birthDate: "2001-03-18",
+  },
+  {
+    id: "patient-2",
+    role: "paciente",
+    name: "Lucas Almeida",
+    email: "lucas@teste.com",
+    cpf: "22233344455",
+    password: "123456",
+    sex: "Masculino",
+    phone: "14997776655",
+    birthDate: "1998-11-09",
   },
   {
     id: "doctor-1",
@@ -15,7 +30,17 @@ export const mockUsers = [
     cpf: "98765432100",
     crm: "123456",
     password: "123456",
-    ownerId: "owner-1"
+    unitIds: ["unit-1", "unit-2"],
+  },
+  {
+    id: "doctor-2",
+    role: "medico",
+    name: "Dra. Camila Nogueira",
+    email: "camila@teste.com",
+    cpf: "33344455566",
+    crm: "654321",
+    password: "123456",
+    unitIds: ["unit-1"],
   },
   {
     id: "owner-1",
@@ -24,69 +49,120 @@ export const mockUsers = [
     email: "marcos@teste.com",
     cpf: "11122233344",
     cnpj: "12345678000190",
-    password: "123456"
-  }
-];
-
-export const mockClinic = {
-  id: "clinic-1",
-  ownerId: "owner-1",
-  name: "Clínica Vida Verde",
-  address: "Rua das Acácias, 120 - Centro - Lins/SP",
-  phone: "(14) 3533-1122",
-  logoUri: null,
-  doctors: ["doctor-1"]
-};
-
-export const mockDiagnosisGroups = [
-  {
-    id: "group-1",
-    name: "Neurologia",
-    color: "#CDEEDB",
-    diagnoses: [
-      {
-        id: "diag-1",
-        title: "Acompanhamento de Cefaleia",
-        description:
-          "Paciente relata episódios de cefaleia recorrente. Avaliação clínica sem sinais de alarme no momento.",
-        medicines: "Dipirona 500 mg se necessário, conforme orientação médica.",
-        date: "25/08/2026",
-        doctor: "Dr. Rafael Lima",
-        clinic: "Clínica Vida Verde"
-      },
-      {
-        id: "diag-2",
-        title: "Avaliação Neurológica",
-        description:
-          "Exame clínico de acompanhamento. Mantida observação e retorno programado.",
-        medicines: "Sem alteração medicamentosa.",
-        date: "18/08/2026",
-        doctor: "Dr. Rafael Lima",
-        clinic: "Clínica Vida Verde"
-      }
-    ]
+    password: "123456",
+    unitId: "unit-1",
   },
   {
-    id: "group-2",
-    name: "Respiratório",
-    color: "#DCEFE8",
-    diagnoses: [
-      {
-        id: "diag-3",
-        title: "Rinite Alérgica",
-        description:
-          "Quadro compatível com rinite alérgica sazonal, sem sinais de infecção bacteriana.",
-        medicines: "Loratadina conforme prescrição.",
-        date: "02/08/2026",
-        doctor: "Dr. Rafael Lima",
-        clinic: "Clínica Vida Verde"
-      }
-    ]
-  }
+    id: "owner-2",
+    role: "dono",
+    name: "Fernanda Costa",
+    email: "fernanda@teste.com",
+    cpf: "55566677788",
+    cnpj: "98765432000110",
+    password: "123456",
+    unitId: "unit-2",
+  },
 ];
 
-export const mockStats = {
-  totalAppointments: 48,
-  thisMonth: 17,
-  activeDoctors: 1
-};
+export const mockUnits = [
+  {
+    id: "unit-1",
+    ownerId: "owner-1",
+    name: "Clínica Vida Verde",
+    cep: "16400001",
+    address: "Rua das Acácias, Centro - Lins/SP",
+    number: "120",
+    phone: "1435331122",
+    cnpj: "12345678000190",
+    logoUri: null,
+    doctorIds: ["doctor-1", "doctor-2"],
+  },
+  {
+    id: "unit-2",
+    ownerId: "owner-2",
+    name: "Instituto Bem Estar",
+    cep: "16400020",
+    address: "Avenida Tiradentes, Centro - Lins/SP",
+    number: "845",
+    phone: "1435227788",
+    cnpj: "98765432000110",
+    logoUri: null,
+    doctorIds: ["doctor-1"],
+  },
+];
+
+
+export const mockTimelines = [
+  {
+    id: "timeline-1",
+    patientId: "patient-1",
+    doctorId: "doctor-1",
+    name: "Acompanhamento respiratório",
+    createdAt: "2026-07-10T12:00:00.000Z",
+  },
+  {
+    id: "timeline-3",
+    patientId: "patient-2",
+    doctorId: "doctor-2",
+    name: "Acompanhamento clínico geral",
+    createdAt: "2026-08-15T12:00:00.000Z",
+  },
+];
+
+export const mockDiagnoses = [
+  {
+    id: "diag-1",
+    patientId: "patient-1",
+    doctorId: "doctor-1",
+    unitId: "unit-1",
+    timelineId: "timeline-1",
+    title: "Rinite alérgica",
+    cid: "CA23.0",
+    description: "Quadro compatível com rinite alérgica, sem sinais de gravidade.",
+    medications: [
+      { medicationId: "med-1", name: "Loratadina 10 mg", dosage: "10 mg", frequency: "1x ao dia", duration: "7 dias", observation: "Preferencialmente à noite" },
+    ],
+    createdAt: "2026-07-12T14:30:00.000Z",
+  },
+  {
+    id: "diag-2",
+    patientId: "patient-1",
+    doctorId: "doctor-2",
+    unitId: "unit-1",
+    timelineId: "timeline-1",
+    title: "Sinusite aguda",
+    cid: "CA01.0",
+    description: "Sintomas respiratórios superiores com evolução recente e necessidade de acompanhamento.",
+    medications: [
+      { medicationId: "med-2", name: "Dipirona 500 mg", dosage: "500 mg", frequency: "8/8 horas se dor", duration: "3 dias", observation: "Se necessário" },
+      { medicationId: "med-5", name: "Solução salina nasal 0,9%", dosage: "2 jatos", frequency: "3x ao dia", duration: "7 dias", observation: "Higiene nasal" },
+    ],
+    createdAt: "2026-08-04T10:15:00.000Z",
+  },
+  {
+    id: "diag-3",
+    patientId: "patient-1",
+    doctorId: "doctor-1",
+    unitId: "unit-1",
+    timelineId: null,
+    title: "Avaliação clínica de rotina",
+    cid: "QC00.0",
+    description: "Avaliação clínica periódica sem alterações relevantes.",
+    medications: [],
+    createdAt: "2026-09-02T09:00:00.000Z",
+  },
+  {
+    id: "diag-4",
+    patientId: "patient-2",
+    doctorId: "doctor-2",
+    unitId: "unit-1",
+    timelineId: "timeline-3",
+    title: "Cefaleia tensional",
+    cid: "8A81.0",
+    description: "Cefaleia compatível com padrão tensional, sem sinais de alarme no momento.",
+    medications: [
+      { medicationId: "med-6", name: "Paracetamol 750 mg", dosage: "750 mg", frequency: "8/8 horas se dor", duration: "3 dias", observation: "Usar apenas se necessário" },
+    ],
+    createdAt: "2026-08-20T13:00:00.000Z",
+  },
+];
