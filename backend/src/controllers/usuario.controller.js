@@ -20,6 +20,19 @@ const criarUsuario = async (req, res) => {
     }
 };
 
+const buscarUsuarioPorCpf = async (req, res) => {
+    try {
+        const { cpf } = req.params;
+        const usuarioRepository = require('../repositories/usuario.repository');
+        const user = await usuarioRepository.findByCpf(cpf);
+        if (!user) return res.status(404).json({ error: 'Paciente n\u00e3o encontrado' });
+        return res.status(200).json({ id: user.usuario_id.toString(), name: user.nome_completo });
+    } catch (error) {
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+};
+
 module.exports = {
-    criarUsuario
+    criarUsuario,
+    buscarUsuarioPorCpf
 };

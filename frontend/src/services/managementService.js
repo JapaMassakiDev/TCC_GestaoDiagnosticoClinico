@@ -26,5 +26,13 @@ export async function removeDoctorFromUnit(ownerId, doctorId) {
 }
 
 export async function getOwnerDashboard(ownerId) {
-  return null;
+  return {
+    totalConsultations: 0,
+    doctors: [],
+    unit: {
+      name: "Minha Unidade (Simulada)",
+      address: "Sem endere\u00e7o cadastrado",
+      phone: "0000000000"
+    }
+  };
 }

@@ -2,12 +2,17 @@ import { apiFetch } from "./api";
 import { onlyDigits } from "../utils/masks";
 
 export async function findPatientByCpf(cpf) {
-  // O backend do TCC n\u00e3o tem endpoint espec\u00edfico pronto, simulando busca vazia para o UI
-  return null; 
+  const cleanCpf = onlyDigits(cpf);
+  return apiFetch(`/usuarios/cpf/${cleanCpf}`).catch(() => null);
 }
 
 export async function searchPatients(query = "") {
-  return []; // Requer implementa\u00e7\u00e3o de rota no backend
+  const digits = onlyDigits(query);
+  if (digits.length === 11) {
+    const patient = await findPatientByCpf(digits);
+    return patient ? [{ id: patient.id, name: patient.name, cpf: digits }] : [];
+  }
+  return []; // Busca por nome requer implementa\u00e7\u00e3o no backend
 }
 
 export async function listDiagnoses(user) {
@@ -46,4 +51,6 @@ export async function assignDiagnosesToTimeline(payload) {
   throw new Error("Funcionalidade n\u00e3o implementada no Backend");
 }
 
-export const getDoctorUnits = (doctorId) => [];
+export async function getDoctorUnits(doctorId) {
+  return apiFetch('/tenants/me').catch(() => []);
+}

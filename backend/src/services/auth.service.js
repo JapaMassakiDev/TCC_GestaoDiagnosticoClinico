@@ -46,7 +46,15 @@ class AuthService {
             { expiresIn: '1d' }
         );
 
-        return { token };
+        return { 
+            token,
+            usuario: {
+                id: userFull.id.toString(),
+                cpf: userFull.cpf,
+                email: userFull.email,
+                nome_completo: userFull.nome_completo
+            }
+        };
     }
 }
 

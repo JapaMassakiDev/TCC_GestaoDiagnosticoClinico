@@ -36,7 +36,15 @@ export default function CreateDiagnosisScreen() {
   const { width } = useWindowDimensions();
   const wide = width >= 900;
   const compactActions = width < 640;
-  const units = useMemo(() => getDoctorUnits(user.id), [user.id]);
+  const [units, setUnits] = useState([]);
+  
+  useEffect(() => {
+    let active = true;
+    getDoctorUnits(user.id).then(res => {
+      if (active && Array.isArray(res)) setUnits(res);
+    });
+    return () => { active = false; };
+  }, [user.id]);
 
   const [patientModal, setPatientModal] = useState(true);
   const [confirmModal, setConfirmModal] = useState(false);

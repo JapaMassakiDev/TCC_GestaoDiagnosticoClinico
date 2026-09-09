@@ -1,4 +1,5 @@
 const schemas = require('../models');
+const runSeed = require('./seed');
 
 async function syncAll() {
     for (const modelName of Object.keys(schemas)) {
@@ -6,6 +7,10 @@ async function syncAll() {
         await schemas[modelName].syncDBAsync();
     }
     console.log('Todas as tabelas foram criadas/sincronizadas com sucesso!');
+    
+    // Executa a carga inicial (seed)
+    await runSeed();
+    
     process.exit(0);
 }
 

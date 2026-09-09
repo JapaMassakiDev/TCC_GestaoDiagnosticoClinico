@@ -7,14 +7,17 @@ class TenantService {
             throw new Error('CNPJ inválido. Deve conter exatamente 14 dígitos.');
         }
 
-        // Valida CNPJ na Receita Federal
+        // Valida CNPJ na Receita Federal (Desativado a pedido do usuário)
+        /*
         try {
             await integrationsService.fetchCnpj(cnpj);
         } catch (err) {
             throw new Error('CNPJ não encontrado ou inválido na Receita Federal.');
         }
+        */
 
-        // Se houver CEP no cadastro, validamos via ViaCEP
+        // Se houver CEP no cadastro, validamos via ViaCEP (Desativado a pedido do usuário)
+        /*
         if (cep) {
             try {
                 await integrationsService.fetchCep(cep);
@@ -22,6 +25,7 @@ class TenantService {
                 throw new Error('O CEP fornecido é inválido ou não foi encontrado.');
             }
         }
+        */
 
         if (!razao_social || !nome_fantasia) {
             throw new Error('Razão social e nome fantasia são obrigatórios.');

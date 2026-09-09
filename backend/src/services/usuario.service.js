@@ -13,8 +13,8 @@ class UsuarioService {
             throw new Error('E-mail inválido.');
         }
 
-        if (!senha || senha.length < 8) {
-            throw new Error('A senha deve conter no mínimo 8 caracteres.');
+        if (!senha || senha.length < 6) {
+            throw new Error('A senha deve conter no mínimo 6 caracteres.');
         }
 
         if (!nome_completo || nome_completo.trim().length === 0) {

@@ -1,4 +1,4 @@
-const API_URL = "http://SEU_IP_LOCAL:3000";
+const API_URL = "http://localhost:3000";
 
 let globalToken = null;
 

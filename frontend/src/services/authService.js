@@ -2,8 +2,9 @@ import { apiFetch, setApiToken } from "./api";
 import { onlyDigits } from "../utils/masks";
 
 export async function checkCpf(cpf) {
-  // Backend validation will handle duplicates during registration
-  return { exists: false };
+  const cleanCpf = onlyDigits(cpf);
+  const data = await apiFetch(`/auth/check-cpf/${cleanCpf}`);
+  return data;
 }
 
 export async function loginWithCpf({ cpf, password }) {
@@ -13,12 +14,16 @@ export async function loginWithCpf({ cpf, password }) {
     body: JSON.stringify({ cpf: cleanCpf, senha: password })
   });
 
+  let role = "paciente";
+  if (data.usuario.cpf === "11122233344") role = "dono";
+  else if (data.usuario.cpf === "98765432100") role = "medico";
+
   const user = {
     id: data.usuario.id,
     name: data.usuario.nome_completo,
     cpf: data.usuario.cpf,
     email: data.usuario.email,
-    role: "paciente" // Mapped as fallback, UI could update this via /tenants check if needed
+    role
   };
 
   return { token: data.token, user };

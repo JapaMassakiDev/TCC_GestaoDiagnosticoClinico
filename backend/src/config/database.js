@@ -7,7 +7,8 @@ const models = ExpressCassandra.createClient({
         protocolOptions: { port: parseInt(process.env.CASSANDRA_PORT) || 9042 },
         keyspace: process.env.CASSANDRA_KEYSPACE || 'saude_app',
         localDataCenter: process.env.CASSANDRA_DATACENTER || 'datacenter1',
-        queryOptions: { consistency: ExpressCassandra.consistencies.one }
+        queryOptions: { consistency: ExpressCassandra.consistencies.one },
+        socketOptions: { readTimeout: 60000 } // Aumenta timeout para 60s
     },
     ormOptions: {
         defaultReplicationStrategy: {

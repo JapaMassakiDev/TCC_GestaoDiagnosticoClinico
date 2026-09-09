@@ -5,5 +5,6 @@ const authenticate = require('../middleware/authenticate');
 
 // Apenas usuários logados podem criar uma instituição
 router.post('/', authenticate, tenantController.criarTenant);
+router.get('/me', authenticate, tenantController.listarMeusTenants);
 
 module.exports = router;

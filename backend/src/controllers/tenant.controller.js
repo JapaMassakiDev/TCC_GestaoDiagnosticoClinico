@@ -24,6 +24,31 @@ const criarTenant = async (req, res) => {
     }
 };
 
+const listarMeusTenants = async (req, res) => {
+    try {
+        const { models } = require('../config/database');
+        const ExpressCassandra = require('express-cassandra');
+        const tenantUsuarios = await models.instance.TenantUsuarioPorUsuario.findAsync({
+            usuario_id: ExpressCassandra.uuid(req.user.id),
+            ativo: true
+        });
+        
+        const units = tenantUsuarios.map(t => ({
+            id: t.tenant_id.toString(),
+            name: t.tenant_nome,
+            address: "",
+            phone: "",
+            cep: ""
+        }));
+        
+        return res.status(200).json(units);
+    } catch (error) {
+        console.error('Erro ao listar tenants:', error);
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+};
+
 module.exports = {
-    criarTenant
+    criarTenant,
+    listarMeusTenants
 };

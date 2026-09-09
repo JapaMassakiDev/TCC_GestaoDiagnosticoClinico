@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, Text, View, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import Screen from "../../components/Screen";
@@ -24,7 +24,7 @@ import {
 } from "../../utils/masks";
 
 export default function ProfileScreen() {
-  const { user, saveProfile, signOut } = useAuth();
+  const { user, saveProfile, signOut, loading } = useAuth();
   const [editVisible, setEditVisible] = useState(false);
   const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
