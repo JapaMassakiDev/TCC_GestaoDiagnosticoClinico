@@ -147,7 +147,7 @@ export default function CreateDiagnosisScreen() {
       medications,
     });
     setConfirmModal(false);
-    Alert.alert("Diagnóstico criado", "O registro foi salvo no mock.");
+    Alert.alert("Diagnóstico criado", "O registro foi salvo com sucesso.");
     setTitle("");
     setCid("");
     setCidTitle("");

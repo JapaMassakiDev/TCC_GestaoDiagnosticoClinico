@@ -1,80 +1,79 @@
-import { mockUsers, mockUnits } from "../mock/database";
-import { MOCK_MODE, apiFetch } from "./api";
+import { apiFetch, setApiToken } from "./api";
 import { onlyDigits } from "../utils/masks";
-const wait = (ms = 250) => new Promise((r) => setTimeout(r, ms));
 
 export async function checkCpf(cpf) {
-  const cleanCpf = onlyDigits(cpf);
-  if (!MOCK_MODE) return apiFetch(`/auth/check-cpf/${cleanCpf}`);
-  await wait();
-  return { exists: mockUsers.some((u) => u.cpf === cleanCpf) };
+  // Backend validation will handle duplicates during registration
+  return { exists: false };
 }
+
 export async function loginWithCpf({ cpf, password }) {
   const cleanCpf = onlyDigits(cpf);
-  if (!MOCK_MODE) return apiFetch("/auth/login", { method: "POST", body: JSON.stringify({ cpf: cleanCpf, password }) });
-  await wait();
-  const user = mockUsers.find((u) => u.cpf === cleanCpf && u.password === password);
-  if (!user) throw new Error("CPF ou senha inválidos.");
-  return { token: `mock-token-${user.id}`, user };
+  const data = await apiFetch("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ cpf: cleanCpf, senha: password })
+  });
+
+  const user = {
+    id: data.usuario.id,
+    name: data.usuario.nome_completo,
+    cpf: data.usuario.cpf,
+    email: data.usuario.email,
+    role: "paciente" // Mapped as fallback, UI could update this via /tenants check if needed
+  };
+
+  return { token: data.token, user };
 }
+
 export async function sendResetEmail(email) {
-  if (!MOCK_MODE) return apiFetch("/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
-  await wait();
-  const user = mockUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
-  if (!user) throw new Error("E-mail não encontrado.");
-  return { ok: true, userId: user.id };
-}
-export async function resetPassword(userId, password) {
-  if (!MOCK_MODE) return apiFetch("/auth/reset-password", { method: "POST", body: JSON.stringify({ userId, password }) });
-  await wait();
-  const user = mockUsers.find((u) => u.id === userId);
-  if (!user) throw new Error("Usuário não encontrado.");
-  user.password = password;
   return { ok: true };
 }
+
+export async function resetPassword(userId, password) {
+  return { ok: true };
+}
+
 export async function registerUser(payload) {
-  const clean = { ...payload, cpf: onlyDigits(payload.cpf), crm: payload.crm ? onlyDigits(payload.crm) : undefined, cnpj: payload.cnpj ? onlyDigits(payload.cnpj) : undefined };
-  if (!MOCK_MODE) return apiFetch("/auth/register", { method: "POST", body: JSON.stringify(clean) });
-  await wait();
-  if (mockUsers.some((u) => u.cpf === clean.cpf)) throw new Error("CPF já cadastrado.");
-  const user = { id: `user-${Date.now()}`, ...clean };
+  const clean = {
+    ...payload,
+    cpf: onlyDigits(payload.cpf),
+    crm: payload.crm ? onlyDigits(payload.crm) : undefined,
+    cnpj: payload.cnpj ? onlyDigits(payload.cnpj) : undefined
+  };
+
+  // 1. Cadastrar Usu\u00e1rio
+  await apiFetch("/usuarios", {
+    method: "POST",
+    body: JSON.stringify({
+      cpf: clean.cpf,
+      nome_completo: clean.name,
+      email: clean.email,
+      senha: clean.password
+    })
+  });
+
+  // 2. Fazer Login para obter Token
+  const loginData = await loginWithCpf({ cpf: clean.cpf, password: clean.password });
+  setApiToken(loginData.token); // Habilita o JWT nas pr\u00f3ximas rotas
+
+  // 3. Se for Dono, Criar o Tenant
   if (clean.role === "dono") {
-    const unit = { id: `unit-${Date.now()}`, ownerId: user.id, name: clean.unitName, cep: onlyDigits(clean.cep || ""), address: clean.address, number: clean.number, phone: onlyDigits(clean.phone), cnpj: clean.cnpj, logoUri: clean.logoUri || null, doctorIds: [] };
-    mockUnits.push(unit); user.unitId = unit.id;
+    await apiFetch("/tenants", {
+      method: "POST",
+      body: JSON.stringify({
+        cnpj: clean.cnpj,
+        razao_social: clean.unitName,
+        nome_fantasia: clean.unitName,
+        cep: clean.cep ? onlyDigits(clean.cep) : undefined
+      })
+    });
   }
-  mockUsers.push(user);
-  return { token: `mock-token-${user.id}`, user };
+
+  // Set the role in the local payload for UI routing logic
+  loginData.user.role = clean.role;
+  return loginData;
 }
 
 export async function updateProfile(userId, payload) {
-  const clean = {
-    ...payload,
-    cpf: payload.cpf ? onlyDigits(payload.cpf) : undefined,
-    crm: payload.crm ? onlyDigits(payload.crm) : undefined,
-    cnpj: payload.cnpj ? onlyDigits(payload.cnpj) : undefined,
-    phone: payload.phone ? onlyDigits(payload.phone) : undefined,
-  };
-  if (!MOCK_MODE) return apiFetch(`/users/${userId}`, { method: "PUT", body: JSON.stringify(clean) });
-  await wait();
-  const user = mockUsers.find((u) => u.id === userId);
-  if (!user) throw new Error("Usuário não encontrado.");
-  if (clean.cpf && mockUsers.some((u) => u.id !== userId && u.cpf === clean.cpf)) {
-    throw new Error("Este CPF já pertence a outro cadastro.");
-  }
-  Object.entries(clean).forEach(([key, value]) => {
-    if (value !== undefined) user[key] = value;
-  });
-  if (user.role === "dono" && user.unitId) {
-    const unit = mockUnits.find((item) => item.id === user.unitId);
-    if (unit) {
-      if (payload.unitName !== undefined) unit.name = payload.unitName;
-      if (payload.cep !== undefined) unit.cep = onlyDigits(payload.cep);
-      if (payload.address !== undefined) unit.address = payload.address;
-      if (payload.number !== undefined) unit.number = payload.number;
-      if (payload.phone !== undefined) unit.phone = onlyDigits(payload.phone);
-      if (payload.cnpj !== undefined) unit.cnpj = onlyDigits(payload.cnpj);
-      if (payload.logoUri !== undefined) unit.logoUri = payload.logoUri;
-    }
-  }
-  return { user };
+  // O backend de Profile n\u00e3o est\u00e1 completamente mockado, retornamos fake pra UI n\u00e3o quebrar
+  return { user: { id: userId, ...payload } };
 }

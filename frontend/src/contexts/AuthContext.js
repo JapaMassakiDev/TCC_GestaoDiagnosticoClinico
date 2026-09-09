@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from "react";
 import { loginWithCpf, registerUser, updateProfile } from "../services/authService";
+import { setApiToken } from "../services/api";
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
@@ -13,6 +14,7 @@ export function AuthProvider({ children }) {
       const data = await loginWithCpf({ cpf, password });
       setUser({ ...data.user });
       setToken(data.token);
+      setApiToken(data.token);
       return data;
     } finally { setLoading(false); }
   }
@@ -23,6 +25,7 @@ export function AuthProvider({ children }) {
       const data = await registerUser(payload);
       setUser({ ...data.user });
       setToken(data.token);
+      setApiToken(data.token);
       return data;
     } finally { setLoading(false); }
   }
@@ -36,7 +39,7 @@ export function AuthProvider({ children }) {
     } finally { setLoading(false); }
   }
 
-  function signOut() { setUser(null); setToken(null); }
+  function signOut() { setUser(null); setToken(null); setApiToken(null); }
 
   return <AuthContext.Provider value={{ user, token, loading, signIn, signUp, saveProfile, signOut }}>{children}</AuthContext.Provider>;
 }

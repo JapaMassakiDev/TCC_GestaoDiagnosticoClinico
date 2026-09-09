@@ -119,18 +119,6 @@ export default function LoginScreen({ navigation }) {
             </Pressable>
           </View>
         </View>
-
-        <View className="mt-5 rounded-2xl bg-mint-50 p-4 hover:shadow-xl transition-all duration-200">
-          <Text className="font-bold text-mint-800">Usuários mockados</Text>
-          <Text className="mt-2 text-sm text-mint-800">Ana Martins (Paciente): 123.456.789-01 / 123456</Text>
-          <Text className="text-sm text-mint-800">Dr. Rafael Lima (Médico): 987.654.321-00 / 123456</Text>
-          <Text className="text-sm text-mint-800">Dra. Camila Nogueira (Médica): 333.444.555-66 / 123456
-          </Text>
-          <Text className="text-sm text-mint-800">Marcos Silva (Dono 1): 111.222.333-44 / 123456</Text>
-          <Text className="text-sm text-mint-800">Fernanda Costa (Dono 2): 555.666.777-88 / 123456
-          </Text>
-          <Text className="text-sm text-mint-800">Lucas Almeida (Paciente): 222.333.444-55 / 123456</Text>
-        </View>
       </View>
     </Screen>
   );

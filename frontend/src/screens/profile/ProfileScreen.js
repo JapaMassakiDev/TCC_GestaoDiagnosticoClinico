@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Alert, Image, Modal, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Modal, Pressable, ScrollView, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import Screen from "../../components/Screen";
@@ -12,7 +12,6 @@ import UnitLocationFields from "../../components/UnitLocationFields";
 import { findCep, validateCepAddress } from "../../services/cepService";
 import { useAuth } from "../../contexts/AuthContext";
 import { checkCpf } from "../../services/authService";
-import { mockUnits } from "../../mock/database";
 import {
   brDateToIso,
   isPastOrTodayDateBr,
@@ -25,12 +24,13 @@ import {
 } from "../../utils/masks";
 
 export default function ProfileScreen() {
-  const { user, loading, saveProfile, signOut } = useAuth();
+  const { user, saveProfile, signOut } = useAuth();
   const [editVisible, setEditVisible] = useState(false);
   const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
+  
   const ownerUnit = useMemo(
-    () => (user.role === "dono" ? mockUnits.find((u) => u.id === user.unitId) : null),
+    () => (user.role === "dono" && user.unitName ? { name: user.unitName, cnpj: user.cnpj, cep: user.cep, address: user.address, number: user.number, phone: user.unitPhone, logoUri: user.logoUri } : null),
     [user]
   );
 

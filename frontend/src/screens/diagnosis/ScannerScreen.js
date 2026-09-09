@@ -46,7 +46,7 @@ export default function ScannerScreen({ navigation }) {
 
       Alert.alert(
         "Diagnósticos recebidos",
-        `${parsed.diagnoses.length} diagnóstico(s) foram recebidos no mock.`,
+        `${parsed.diagnoses.length} diagnóstico(s) foram recebidos com sucesso.`,
         [{ text: "OK", onPress: () => navigation.goBack() }]
       );
     } catch {
