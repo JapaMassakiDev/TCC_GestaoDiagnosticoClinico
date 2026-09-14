@@ -1,16 +1,19 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
-import { useAuth } from "../contexts/AuthContext";
-import DiagnosisScreen from "../screens/diagnosis/DiagnosisScreen";
-import CreateDiagnosisScreen from "../screens/create/CreateDiagnosisScreen";
-import ManagementScreen from "../screens/management/ManagementScreen";
-import ProfileScreen from "../screens/profile/ProfileScreen";
+import { usarAutenticacao } from "../contexts/AuthenticationContext";
+import { ProvedorAutorizacao } from "../contexts/AuthorizationContext";
+import TelaDiagnosticos from "../screens/diagnostico/TelaDiagnosticos";
+import TelaCriarDiagnostico from "../screens/criar/TelaCriarDiagnostico";
+import TelaGestao from "../screens/gestao/TelaGestao";
+import TelaPerfil from "../screens/perfil/TelaPerfil";
 
 const Tab = createBottomTabNavigator();
 
-export default function AppTabs() {
-  const { user } = useAuth();
+export default function AbasApp() {
+  const { usuario, telaAtual, registrarTela } = usarAutenticacao();
+  const screensPermitidas = usuario?.role === "medico" ? ["Diagnósticos", "Criar", "Perfil"] : usuario?.role === "dono" ? ["Gestão", "Perfil"] : ["Diagnósticos", "Perfil"];
+  const telaInicial = screensPermitidas.includes(telaAtual) ? telaAtual : screensPermitidas[0];
 
   const icons = {
     Diagnósticos: "document-text-outline",
@@ -20,8 +23,11 @@ export default function AppTabs() {
   };
 
   return (
-    <Tab.Navigator
-      key={user?.role || "guest"}
+    <ProvedorAutorizacao>
+      <Tab.Navigator
+      key={usuario?.role || "guest"}
+      initialRouteName={telaInicial}
+      screenListeners={({ route }) => ({ focus: () => registrarTela(route.name) })}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor: "#3F8F68",
@@ -38,31 +44,32 @@ export default function AppTabs() {
         ),
       })}
     >
-      {user?.role === "paciente" ? (
+      {usuario?.role === "paciente" ? (
         <>
-          <Tab.Screen name="Diagnósticos" component={DiagnosisScreen} />
-          <Tab.Screen name="Perfil" component={ProfileScreen} />
+          <Tab.Screen name="Diagnósticos" component={TelaDiagnosticos} />
+          <Tab.Screen name="Perfil" component={TelaPerfil} />
         </>
       ) : null}
 
-      {user?.role === "medico" ? (
+      {usuario?.role === "medico" ? (
         <>
-          <Tab.Screen name="Diagnósticos" component={DiagnosisScreen} />
-          <Tab.Screen name="Criar" component={CreateDiagnosisScreen} />
-          <Tab.Screen name="Perfil" component={ProfileScreen} />
+          <Tab.Screen name="Diagnósticos" component={TelaDiagnosticos} />
+          <Tab.Screen name="Criar" component={TelaCriarDiagnostico} />
+          <Tab.Screen name="Perfil" component={TelaPerfil} />
         </>
       ) : null}
 
-      {user?.role === "dono" ? (
+      {usuario?.role === "dono" ? (
         <>
-          <Tab.Screen name="Gestão" component={ManagementScreen} />
-          <Tab.Screen name="Perfil" component={ProfileScreen} />
+          <Tab.Screen name="Gestão" component={TelaGestao} />
+          <Tab.Screen name="Perfil" component={TelaPerfil} />
         </>
       ) : null}
 
-      {!['paciente', 'medico', 'dono'].includes(user?.role) ? (
-        <Tab.Screen name="Perfil" component={ProfileScreen} />
+      {!['paciente', 'medico', 'dono'].includes(usuario?.role) ? (
+        <Tab.Screen name="Perfil" component={TelaPerfil} />
       ) : null}
-    </Tab.Navigator>
+      </Tab.Navigator>
+    </ProvedorAutorizacao>
   );
 }

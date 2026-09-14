@@ -1,38 +1,67 @@
-import { apiFetch } from "./api";
-
-export async function getMyUnit(ownerId) {
-  // Backend placeholder (ainda requer rota dedicada para retornar Tenant por Dono)
+export async function obterMinhaUnidade(proprietarioId) {
   return null;
 }
 
-export async function getUnitKpis(ownerId) {
+export async function obterIndicadoresUnidade(proprietarioId) {
   return null;
 }
 
-export async function listUnitDoctors(ownerId) {
+export async function listarMedicosUnidade(proprietarioId) {
   return [];
 }
 
-export async function findDoctorByCrm(crm) {
-  return null;
+export async function buscarMedicoPorCrm(crm) {
+  const crmLimpo = somenteDigitos(crm);
+  if (!crmLimpo) throw new Error("Informe o CRM do médico.");
+  const resposta = await requisitarApi(`/medicos/por-crm/${crmLimpo}`);
+  const medico = resposta?.medico ?? resposta?.data ?? resposta;
+  return {
+    id: medico.id ?? medico.usuario_id,
+    nome: medico.nome ?? medico.name ?? medico.nome_completo,
+    crm: medico.crm ?? crmLimpo,
+    cpf: somenteDigitos(medico.cpf || ""),
+  };
 }
 
-export async function addDoctorToUnit(ownerId, crm) {
-  throw new Error("Rota n\u00e3o implementada no Backend");
+export async function adicionarMedicoUnidade(proprietarioId, crm, medicoId) {
+  return requisitarApi("/unidades/minha-unidade/medicos", {
+    method: "POST",
+    body: JSON.stringify({
+      proprietario_id: proprietarioId,
+      medico_id: medicoId,
+      crm: somenteDigitos(crm),
+    }),
+  });
 }
 
-export async function removeDoctorFromUnit(ownerId, doctorId) {
-  throw new Error("Rota n\u00e3o implementada no Backend");
+export async function enviarAutorizacaoMedico({ proprietarioId, medico, contrato }) {
+  const formulario = new FormData();
+  formulario.append("proprietario_id", proprietarioId);
+  formulario.append("medico_id", medico.id);
+  formulario.append("crm", somenteDigitos(medico.crm));
+  if (contrato.file) formulario.append("contrato", contrato.file);
+  else formulario.append("contrato", { uri: contrato.uri, name: contrato.name, type: contrato.mimeType });
+
+  return requisitarApi("/unidades/minha-unidade/autorizacoes", {
+    method: "POST",
+    body: formulario,
+  });
 }
 
-export async function getOwnerDashboard(ownerId) {
+export async function removerMedicoUnidade(proprietarioId, medicoId) {
+  throw new Error("Rota não implementada no Backend");
+}
+
+export async function obterPainelProprietario(proprietarioId) {
   return {
     totalConsultations: 0,
     doctors: [],
     unit: {
       name: "Minha Unidade (Simulada)",
-      address: "Sem endere\u00e7o cadastrado",
-      phone: "0000000000"
-    }
+      address: "Sem endereço cadastrado",
+      phone: "0000000000",
+    },
   };
 }
+import { requisitarApi } from "./api";
+import { somenteDigitos } from "../utils/masks";

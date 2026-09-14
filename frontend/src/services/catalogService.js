@@ -1,11 +1,11 @@
-const API_URL = "http://localhost:3000/integrations";
+const URL_API = "http://localhost:3000/integrations";
 
-export async function searchMedications(query = "") {
+export async function buscarMedicamentos(termo = "") {
   try {
-    const response = await fetch(`${API_URL}/sngpc?query=${encodeURIComponent(query)}`);
-    if (!response.ok) return [];
-    return await response.json();
-  } catch (error) {
+    const resposta = await fetch(`${URL_API}/sngpc?query=${encodeURIComponent(termo)}`);
+    if (!resposta.ok) return [];
+    return await resposta.json();
+  } catch {
     return [];
   }
 }

@@ -1,21 +1,19 @@
-import { apiFetch } from "./api";
-
-export async function getClinic() {
+export async function obterClinica() {
   return null;
 }
 
-export async function updateClinic(payload) {
-  throw new Error("N\u00e3o implementado");
+export async function atualizarClinica(dadosClinica) {
+  throw new Error("Não implementado");
 }
 
-export async function addDoctorByCpf(cpf) {
-  throw new Error("N\u00e3o implementado");
+export async function adicionarMedicoPorCpf(cpf) {
+  throw new Error("Não implementado");
 }
 
-export async function removeDoctor(doctorId) {
-  throw new Error("N\u00e3o implementado");
+export async function removerMedico(medicoId) {
+  throw new Error("Não implementado");
 }
 
-export async function getClinicStats() {
+export async function obterEstatisticasClinica() {
   return null;
 }

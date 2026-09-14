@@ -1,13 +1,14 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { useAuth } from "../contexts/AuthContext";
-import LoginScreen from "../screens/auth/LoginScreen";
-import ForgotPasswordScreen from "../screens/auth/ForgotPasswordScreen";
-import ResetPasswordScreen from "../screens/auth/ResetPasswordScreen";
-import RegisterScreen from "../screens/auth/RegisterScreen";
-import AppTabs from "./AppTabs";
+import { usarAutenticacao } from "../contexts/AuthenticationContext";
+import TelaLogin from "../screens/auth/TelaLogin";
+import TelaEsqueciSenha from "../screens/auth/TelaEsqueciSenha";
+import TelaRedefinirSenha from "../screens/auth/TelaRedefinirSenha";
+import TelaCadastro from "../screens/auth/TelaCadastro";
+import TelaSelecionarPapel from "../screens/auth/TelaSelecionarPapel";
+import AbasApp from "./AppTabs";
 const Stack = createNativeStackNavigator();
-export default function RootNavigator() {
-  const { user } = useAuth();
-  return <Stack.Navigator screenOptions={{ headerShown: false }}>{!user ? <><Stack.Screen name="Login" component={LoginScreen}/><Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen}/><Stack.Screen name="ResetPassword" component={ResetPasswordScreen}/><Stack.Screen name="Register" component={RegisterScreen}/></> : <Stack.Screen name="Main" component={AppTabs}/>}</Stack.Navigator>;
+export default function NavegadorRaiz() {
+  const { usuario, selecaoPapel } = usarAutenticacao();
+  return <Stack.Navigator screenOptions={{ headerShown: false }}>{!usuario ? <>{selecaoPapel ? <Stack.Screen name="SelecionarPapel" component={TelaSelecionarPapel}/> : <><Stack.Screen name="Login" component={TelaLogin}/><Stack.Screen name="EsqueciSenha" component={TelaEsqueciSenha}/><Stack.Screen name="RedefinirSenha" component={TelaRedefinirSenha}/><Stack.Screen name="Cadastro" component={TelaCadastro}/></>}</> : <Stack.Screen name="Principal" component={AbasApp}/>}</Stack.Navigator>;
 }

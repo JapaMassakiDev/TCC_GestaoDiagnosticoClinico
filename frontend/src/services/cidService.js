@@ -1,11 +1,11 @@
-const API_URL = "http://localhost:3000/integrations";
+const URL_API = "http://localhost:3000/integrations";
 
-export async function searchCids(query = "") {
+export async function buscarCids(termo = "") {
   try {
-    const response = await fetch(`${API_URL}/cid?query=${encodeURIComponent(query)}`);
-    if (!response.ok) return [];
-    return await response.json();
-  } catch (error) {
+    const resposta = await fetch(`${URL_API}/cid?query=${encodeURIComponent(termo)}`);
+    if (!resposta.ok) return [];
+    return await resposta.json();
+  } catch {
     return [];
   }
 }
