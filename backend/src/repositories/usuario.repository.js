@@ -32,6 +32,9 @@ class UsuarioRepository {
             usuario_id: id,
             nome_completo: usuarioData.nome_completo,
             email: usuarioData.email,
+            telefone: usuarioData.telefone,
+            sexo: usuarioData.sexo,
+            data_nascimento: usuarioData.data_nascimento,
             ativo: true
         });
 
@@ -40,6 +43,9 @@ class UsuarioRepository {
             usuario_id: id,
             cpf: usuarioData.cpf,
             nome_completo: usuarioData.nome_completo,
+            telefone: usuarioData.telefone,
+            sexo: usuarioData.sexo,
+            data_nascimento: usuarioData.data_nascimento,
             ativo: true
         });
 

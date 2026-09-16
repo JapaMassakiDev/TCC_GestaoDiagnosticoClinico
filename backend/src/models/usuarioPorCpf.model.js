@@ -5,6 +5,9 @@ module.exports = {
         usuario_id: 'uuid',
         nome_completo: 'text',
         email: 'text',
+        telefone: 'text',
+        sexo: 'text',
+        data_nascimento: 'text',
         ativo: 'boolean'
     },
     key: ['cpf']

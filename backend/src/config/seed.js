@@ -40,10 +40,11 @@ async function runSeed() {
             const queries = [
                 new schemas.Tenant({
                     id: fixedTenantId,
+                    tipo_tenant: 'CLINICA',
                     cnpj: '12345678901234',
                     razao_social: 'Cl\u00ednica TCC M\u00e9dica',
                     nome_fantasia: 'Cl\u00ednica Sa\u00fade APP',
-                    dono_id: dono.id,
+                    dono_id: ExpressCassandra.uuid(dono.id),
                     ativo: true,
                     created_at: timestamp,
                     updated_at: timestamp
@@ -57,14 +58,14 @@ async function runSeed() {
                 }).save({ return_query: true }),
                 new schemas.TenantUsuarioPorTenant({
                     tenant_id: fixedTenantId,
-                    usuario_id: dono.id,
+                    usuario_id: ExpressCassandra.uuid(dono.id),
                     papeis: ['DONO', 'MEDICO'],
                     ativo: true,
                     created_at: timestamp,
                     updated_at: timestamp
                 }).save({ return_query: true }),
                 new schemas.TenantUsuarioPorUsuario({
-                    usuario_id: dono.id,
+                    usuario_id: ExpressCassandra.uuid(dono.id),
                     tenant_id: fixedTenantId,
                     tenant_nome: 'Cl\u00ednica Sa\u00fade APP',
                     papeis: ['DONO', 'MEDICO'],
@@ -101,14 +102,14 @@ async function runSeed() {
             const queriesMedico = [
                 new schemas.TenantUsuarioPorTenant({
                     tenant_id: fixedTenantId,
-                    usuario_id: medico.id,
+                    usuario_id: ExpressCassandra.uuid(medico.id),
                     papeis: ['MEDICO'],
                     ativo: true,
                     created_at: timestamp,
                     updated_at: timestamp
                 }).save({ return_query: true }),
                 new schemas.TenantUsuarioPorUsuario({
-                    usuario_id: medico.id,
+                    usuario_id: ExpressCassandra.uuid(medico.id),
                     tenant_id: fixedTenantId,
                     tenant_nome: 'Cl\u00ednica Sa\u00fade APP',
                     papeis: ['MEDICO'],

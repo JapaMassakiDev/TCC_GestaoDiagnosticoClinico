@@ -8,6 +8,7 @@ schemas.UsuarioPorEmail = models.loadSchema('usuarios_por_email', require('./usu
 schemas.Medico = models.loadSchema('medicos', require('./medico.model'));
 schemas.Tenant = models.loadSchema('tenants', require('./tenant.model'));
 schemas.TenantPorCnpj = models.loadSchema('tenants_por_cnpj', require('./tenantPorCnpj.model'));
+schemas.TenantPorCpf = models.loadSchema('tenants_por_cpf', require('./tenantPorCpf.model'));
 schemas.TenantUsuarioPorTenant = models.loadSchema('tenant_usuarios_por_tenant', require('./tenantUsuarioPorTenant.model'));
 schemas.TenantUsuarioPorUsuario = models.loadSchema('tenant_usuarios_por_usuario', require('./tenantUsuarioPorUsuario.model'));
 schemas.DiagnosticoPorTenant = models.loadSchema('diagnosticos_por_tenant', require('./diagnosticoPorTenant.model'));

@@ -32,7 +32,25 @@ const buscarUsuarioPorCpf = async (req, res) => {
     }
 };
 
+const adicionarPapel = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { nome_completo, email, cpf, papel } = req.body; // payload sends these mapped differently maybe? Let's check.
+        // Wait, frontend sends name, email, cpf as part of the form, but let's check what authService sends:
+        // { papel: dadosCadastro.role, nome_unidade: ... }
+        // Let's implement it carefully.
+        const result = await usuarioService.adicionarPapel(id, req.body);
+        return res.status(200).json({ message: 'Papel adicionado', data: result });
+    } catch (error) {
+        if (error.message.includes('não confere') || error.message.includes('inválido')) {
+            return res.status(400).json({ error: error.message });
+        }
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+};
+
 module.exports = {
     criarUsuario,
-    buscarUsuarioPorCpf
+    buscarUsuarioPorCpf,
+    adicionarPapel
 };

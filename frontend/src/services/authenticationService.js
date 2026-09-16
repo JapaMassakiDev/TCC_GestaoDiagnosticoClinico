@@ -92,6 +92,9 @@ export async function adicionarPapelUsuario(usuarioId, dadosCadastro) {
     method: "PUT",
     body: JSON.stringify({
       papel: dadosCadastro.role,
+      cpf: dadosCadastro.cpf,
+      nome_completo: dadosCadastro.name,
+      email: dadosCadastro.email,
       senha: dadosCadastro.password,
       crm: dadosCadastro.crm ? somenteDigitos(dadosCadastro.crm) : undefined,
       cnpj: dadosCadastro.cnpj ? somenteDigitos(dadosCadastro.cnpj) : undefined,
@@ -143,6 +146,10 @@ export async function cadastrarUsuario(dadosCadastro) {
     return entrarComCpf({ cpf: dadosLimpos.cpf, senha: dadosLimpos.password });
   }
 
+  if (dadosLimpos.role === "dono" || dadosLimpos.role === "medico") {
+    throw new Error(`Para se registrar como ${dadosLimpos.role}, você precisa já estar cadastrado no sistema como paciente.`);
+  }
+
   await requisitarApi("/usuarios", {
     method: "POST",
     body: JSON.stringify({
@@ -150,6 +157,9 @@ export async function cadastrarUsuario(dadosCadastro) {
       nome_completo: dadosLimpos.name,
       email: dadosLimpos.email,
       senha: dadosLimpos.password,
+      telefone: dadosLimpos.phone ? somenteDigitos(dadosLimpos.phone) : undefined,
+      sexo: dadosLimpos.sex,
+      data_nascimento: dadosLimpos.birthDate
     }),
   });
 
@@ -157,12 +167,17 @@ export async function cadastrarUsuario(dadosCadastro) {
   definirTokenApi(dadosLogin.token);
 
   if (dadosLimpos.role === "dono") {
+    // Tipo de tenant: se tiver CNPJ é CLINICA, senão AUTONOMO (usando CPF)
+    const tipo_tenant = dadosLimpos.cnpj ? 'CLINICA' : 'AUTONOMO';
+    
     await requisitarApi("/tenants", {
       method: "POST",
       body: JSON.stringify({
-        cnpj: dadosLimpos.cnpj,
-        razao_social: dadosLimpos.unitName,
-        nome_fantasia: dadosLimpos.unitName,
+        tipo_tenant,
+        cpf: tipo_tenant === 'AUTONOMO' ? dadosLimpos.cpf : undefined,
+        cnpj: tipo_tenant === 'CLINICA' ? dadosLimpos.cnpj : undefined,
+        razao_social: dadosLimpos.unitName || dadosLimpos.name,
+        nome_fantasia: dadosLimpos.unitName || dadosLimpos.name,
         cep: dadosLimpos.cep ? somenteDigitos(dadosLimpos.cep) : undefined,
       }),
     }).catch(() => null);

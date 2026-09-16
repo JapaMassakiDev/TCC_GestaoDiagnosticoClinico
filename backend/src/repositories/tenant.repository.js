@@ -14,6 +14,10 @@ class TenantRepository {
         });
     }
 
+    async findByCpf(cpf) {
+        return await schemas.TenantPorCpf.findOneAsync({ cpf });
+    }
+
     async create(tenantData) {
         const tenantId = ExpressCassandra.uuid();
         const timestamp = new Date();
@@ -21,6 +25,8 @@ class TenantRepository {
 
         const tenant = new schemas.Tenant({
             id: tenantId,
+            tipo_tenant: tenantData.tipo_tenant,
+            cpf: tenantData.cpf,
             cnpj: tenantData.cnpj,
             razao_social: tenantData.razao_social,
             nome_fantasia: tenantData.nome_fantasia,
@@ -28,14 +34,6 @@ class TenantRepository {
             ativo: true,
             created_at: timestamp,
             updated_at: timestamp
-        });
-
-        const tenantPorCnpj = new schemas.TenantPorCnpj({
-            cnpj: tenantData.cnpj,
-            tenant_id: tenantId,
-            razao_social: tenantData.razao_social,
-            nome_fantasia: tenantData.nome_fantasia,
-            ativo: true
         });
 
         const tenantUsuarioPorTenant = new schemas.TenantUsuarioPorTenant({
@@ -55,13 +53,32 @@ class TenantRepository {
             ativo: true
         });
 
-        // Batch execution para salvar em 4 tabelas de uma vez garantindo Atomicidade
+        // Batch execution
         const queries = [
             tenant.save({ return_query: true }),
-            tenantPorCnpj.save({ return_query: true }),
             tenantUsuarioPorTenant.save({ return_query: true }),
             tenantUsuarioPorUsuario.save({ return_query: true })
         ];
+
+        if (tenantData.tipo_tenant === 'CLINICA') {
+            const tenantPorCnpj = new schemas.TenantPorCnpj({
+                cnpj: tenantData.cnpj,
+                tenant_id: tenantId,
+                razao_social: tenantData.razao_social,
+                nome_fantasia: tenantData.nome_fantasia,
+                ativo: true
+            });
+            queries.push(tenantPorCnpj.save({ return_query: true }));
+        } else if (tenantData.tipo_tenant === 'AUTONOMO') {
+            const tenantPorCpf = new schemas.TenantPorCpf({
+                cpf: tenantData.cpf,
+                tenant_id: tenantId,
+                razao_social: tenantData.razao_social,
+                nome_fantasia: tenantData.nome_fantasia,
+                ativo: true
+            });
+            queries.push(tenantPorCpf.save({ return_query: true }));
+        }
 
         return new Promise((resolve, reject) => {
             models.doBatch(queries, (err) => {

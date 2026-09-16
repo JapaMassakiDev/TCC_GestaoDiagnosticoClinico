@@ -6,6 +6,9 @@ module.exports = {
         nome_completo: 'text',
         email: 'text',
         senha_hash: 'text',
+        telefone: 'text',
+        sexo: 'text',
+        data_nascimento: 'text',
         ativo: 'boolean',
         created_at: 'timestamp',
         updated_at: 'timestamp'
