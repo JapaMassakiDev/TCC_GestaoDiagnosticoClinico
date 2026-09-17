@@ -3,10 +3,15 @@ const tenantService = require('../services/tenant.service');
 const usuarioRepository = require('../repositories/usuario.repository');
 
 async function runSeed() {
-    console.log('Verificando a cria\u00e7\u00e3o de usu\u00e1rios padr\u00e3o...');
+    console.log('Verificando a criação de usuários padrão...');
 
     try {
-        // 1. Criar Paciente Padr\u00e3o
+        const ExpressCassandra = require('express-cassandra');
+        const schemas = require('../models');
+        const timestamp = new Date();
+        const fixedTenantId = ExpressCassandra.uuid('11111111-2222-3333-4444-555555555555');
+
+        // 1. Criar Paciente Padrão
         const cpfPaciente = '12345678901';
         let pacienteExists = await usuarioRepository.findByCpf(cpfPaciente);
         if (!pacienteExists) {
@@ -16,10 +21,10 @@ async function runSeed() {
                 email: 'paciente@tcc.com',
                 senha: '123456'
             });
-            console.log('-> Paciente padr\u00e3o criado: 12345678901 / 123456');
+            console.log('-> Paciente padrão criado: 12345678901 / 123456');
         }
 
-        // 2. Criar Dono Padr\u00e3o (e seu Tenant)
+        // 2. Criar Dono Padrão (e seu Tenant)
         const cpfDono = '11122233344';
         let donoExists = await usuarioRepository.findByCpf(cpfDono);
         if (!donoExists) {
@@ -30,21 +35,16 @@ async function runSeed() {
                 senha: '123456'
             });
 
-            const ExpressCassandra = require('express-cassandra');
-            const fixedTenantId = ExpressCassandra.uuid('11111111-2222-3333-4444-555555555555');
-
-            // Criar Tenant vinculado ao Dono manualmente ou passar o ID
-            const schemas = require('../models');
-            const timestamp = new Date();
+            const donoId = dono.id;
             
             const queries = [
                 new schemas.Tenant({
                     id: fixedTenantId,
                     tipo_tenant: 'CLINICA',
                     cnpj: '12345678901234',
-                    razao_social: 'Cl\u00ednica TCC M\u00e9dica',
-                    nome_fantasia: 'Cl\u00ednica Sa\u00fade APP',
-                    dono_id: ExpressCassandra.uuid(dono.id),
+                    razao_social: 'Clínica TCC Médica',
+                    nome_fantasia: 'Clínica Saúde APP',
+                    dono_id: donoId,
                     ativo: true,
                     created_at: timestamp,
                     updated_at: timestamp
@@ -52,24 +52,31 @@ async function runSeed() {
                 new schemas.TenantPorCnpj({
                     cnpj: '12345678901234',
                     tenant_id: fixedTenantId,
-                    razao_social: 'Cl\u00ednica TCC M\u00e9dica',
-                    nome_fantasia: 'Cl\u00ednica Sa\u00fade APP',
+                    razao_social: 'Clínica TCC Médica',
+                    nome_fantasia: 'Clínica Saúde APP',
                     ativo: true
                 }).save({ return_query: true }),
                 new schemas.TenantUsuarioPorTenant({
                     tenant_id: fixedTenantId,
-                    usuario_id: ExpressCassandra.uuid(dono.id),
-                    papeis: ['DONO', 'MEDICO'],
+                    usuario_id: donoId,
+                    papeis: ['DONO', 'MEDICO', 'PACIENTE'],
                     ativo: true,
                     created_at: timestamp,
                     updated_at: timestamp
                 }).save({ return_query: true }),
                 new schemas.TenantUsuarioPorUsuario({
-                    usuario_id: ExpressCassandra.uuid(dono.id),
+                    usuario_id: donoId,
                     tenant_id: fixedTenantId,
-                    tenant_nome: 'Cl\u00ednica Sa\u00fade APP',
-                    papeis: ['DONO', 'MEDICO'],
+                    tenant_nome: 'Clínica Saúde APP',
+                    papeis: ['DONO', 'MEDICO', 'PACIENTE'],
                     ativo: true
+                }).save({ return_query: true }),
+                new schemas.Medico({
+                    usuario_id: donoId,
+                    crm: '123456-SP',
+                    ativo: true,
+                    created_at: timestamp,
+                    updated_at: timestamp
                 }).save({ return_query: true })
             ];
             
@@ -80,40 +87,44 @@ async function runSeed() {
                 });
             });
 
-            console.log('-> Dono padr\u00e3o criado (e cl\u00ednica vinculada): 11122233344 / 123456');
+            console.log('-> Dono padrão criado (e clínica vinculada): 11122233344 / 123456');
         }
 
-        // 3. Criar M\u00e9dico Padr\u00e3o
+        // 3. Criar Médico Padrão
         const cpfMedico = '98765432100';
         let medicoExists = await usuarioRepository.findByCpf(cpfMedico);
         if (!medicoExists) {
             const medico = await usuarioService.criarUsuario({
                 cpf: cpfMedico,
-                nome_completo: 'Dr. Rafael Lima (M\u00e9dico)',
+                nome_completo: 'Dr. Rafael Lima (Médico)',
                 email: 'medico@tcc.com',
                 senha: '123456'
             });
             
-            const ExpressCassandra = require('express-cassandra');
-            const fixedTenantId = ExpressCassandra.uuid('11111111-2222-3333-4444-555555555555');
-            const schemas = require('../models');
-            const timestamp = new Date();
+            const medicoId = medico.id;
             
             const queriesMedico = [
                 new schemas.TenantUsuarioPorTenant({
                     tenant_id: fixedTenantId,
-                    usuario_id: ExpressCassandra.uuid(medico.id),
-                    papeis: ['MEDICO'],
+                    usuario_id: medicoId,
+                    papeis: ['MEDICO', 'PACIENTE'],
                     ativo: true,
                     created_at: timestamp,
                     updated_at: timestamp
                 }).save({ return_query: true }),
                 new schemas.TenantUsuarioPorUsuario({
-                    usuario_id: ExpressCassandra.uuid(medico.id),
+                    usuario_id: medicoId,
                     tenant_id: fixedTenantId,
-                    tenant_nome: 'Cl\u00ednica Sa\u00fade APP',
-                    papeis: ['MEDICO'],
+                    tenant_nome: 'Clínica Saúde APP',
+                    papeis: ['MEDICO', 'PACIENTE'],
                     ativo: true
+                }).save({ return_query: true }),
+                new schemas.Medico({
+                    usuario_id: medicoId,
+                    crm: 'CRM98765-RJ',
+                    ativo: true,
+                    created_at: timestamp,
+                    updated_at: timestamp
                 }).save({ return_query: true })
             ];
             
@@ -124,7 +135,7 @@ async function runSeed() {
                 });
             });
             
-            console.log('-> M\u00e9dico padr\u00e3o criado (e vinculado): 98765432100 / 123456');
+            console.log('-> Médico padrão criado (e vinculado): 98765432100 / 123456');
         }
 
         console.log('Seed finalizado com sucesso!');

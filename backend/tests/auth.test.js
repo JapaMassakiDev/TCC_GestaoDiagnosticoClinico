@@ -7,6 +7,20 @@ const authenticate = require('../src/middleware/authenticate');
 const jwt = require('jsonwebtoken');
 
 jest.mock('../src/repositories/usuario.repository');
+jest.mock('../src/repositories/medico.repository', () => ({
+    findById: jest.fn().mockResolvedValue(null)
+}));
+jest.mock('../src/config/database', () => ({
+    models: {
+        uuidFromString: jest.fn(id => id),
+        loadSchema: jest.fn(() => ({})),
+        instance: {
+            tenant_usuarios_por_usuario: {
+                findAsync: jest.fn().mockResolvedValue([{ papeis: ['DONO'] }])
+            }
+        }
+    }
+}));
 
 describe('Autenticação (Login & Middleware)', () => {
     beforeEach(() => {
