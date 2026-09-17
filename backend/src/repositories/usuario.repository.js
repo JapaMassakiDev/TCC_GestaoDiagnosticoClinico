@@ -8,7 +8,8 @@ class UsuarioRepository {
     }
 
     async findById(id) {
-        return await schemas.Usuario.findOneAsync({ id });
+        const queryId = typeof id === 'string' ? models.uuidFromString(id) : id;
+        return await schemas.Usuario.findOneAsync({ id: queryId });
     }
 
     async findByEmail(email) {

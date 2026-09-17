@@ -19,9 +19,10 @@ class TenantRepository {
     }
 
     async create(tenantData) {
+        const { models } = require('../config/database');
         const tenantId = ExpressCassandra.uuid();
         const timestamp = new Date();
-        const usuarioId = ExpressCassandra.uuid(tenantData.dono_id);
+        const usuarioId = typeof tenantData.dono_id === 'string' ? models.uuidFromString(tenantData.dono_id) : tenantData.dono_id;
 
         const tenant = new schemas.Tenant({
             id: tenantId,

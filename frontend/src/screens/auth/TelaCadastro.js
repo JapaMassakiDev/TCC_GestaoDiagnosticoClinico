@@ -154,6 +154,10 @@ export default function TelaCadastro({ navigation: navegacao, route }) {
   }
 
   async function submit() {
+    if (cpfStatus === "loading") {
+      setErrors({ api: "Aguarde a verificação do CPF antes de continuar." });
+      return;
+    }
     const nextErrors = {};
     const cleanCpf = somenteDigitos(cpf);
 

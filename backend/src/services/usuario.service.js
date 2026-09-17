@@ -63,6 +63,35 @@ class UsuarioService {
         };
     }
 
+    async atualizar(usuarioId, dados) {
+        const user = await usuarioRepository.findById(usuarioId);
+        if (!user) {
+            throw new Error('Usuário não encontrado.');
+        }
+
+        // Mapear campos do payload do frontend para o banco
+        if (dados.name) user.nome_completo = dados.name;
+        if (dados.email) user.email = dados.email;
+        if (dados.phone) user.telefone = dados.phone;
+        if (dados.sex) user.sexo = dados.sex;
+        if (dados.birthDate) user.data_nascimento = dados.birthDate;
+        
+        if (dados.password) {
+            if (dados.password.length < 6) {
+                throw new Error('A senha deve conter no mínimo 6 caracteres.');
+            }
+            const bcrypt = require('bcryptjs');
+            user.senha_hash = await bcrypt.hash(dados.password, 10);
+        }
+
+        // Não vamos atualizar CPF para evitar inconsistência na tabela auxiliar usuario_por_cpf
+        user.updated_at = new Date();
+        
+        await user.saveAsync();
+        
+        return user;
+    }
+
     async adicionarPapel(usuarioId, dados) {
         const { cpf, nome_completo, email, papel, senha, cnpj, nome_unidade, crm } = dados;
         
@@ -74,8 +103,8 @@ class UsuarioService {
         // Validação de segurança solicitada: Se CPF, Nome ou Email não baterem, recusa a criação
         if (
             user.cpf !== cpf || 
-            user.email.toLowerCase() !== (email || '').toLowerCase() || 
-            user.nome_completo.toLowerCase() !== (nome_completo || '').toLowerCase()
+            (user.email || '').trim().toLowerCase() !== (email || '').trim().toLowerCase() || 
+            (user.nome_completo || '').replace(/\s+/g, ' ').trim().toLowerCase() !== (nome_completo || '').replace(/\s+/g, ' ').trim().toLowerCase()
         ) {
             throw new Error('Os dados informados (CPF, Nome ou Email) não conferem com o cadastro existente. Criação recusada.');
         }
@@ -101,8 +130,11 @@ class UsuarioService {
             // O frontend faz POST /tenants logo após receber 200 daqui.
             return { success: true };
         } else if (papel === 'medico') {
-            // Se for médico, apenas retornamos sucesso para o frontend receber o token de volta
-            // A vinculação do médico a uma unidade será feita depois pelo gestor.
+            const medicoService = require('./medico.service');
+            await medicoService.create({ 
+                usuario_id: user.id, 
+                crm: crm
+            });
             return { success: true };
         }
 

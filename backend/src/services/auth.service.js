@@ -46,13 +46,44 @@ class AuthService {
             { expiresIn: '1d' }
         );
 
+        // Fetch roles
+        const { models } = require('../config/database');
+        const roles = await models.instance.tenant_usuarios_por_usuario.findAsync(
+            {
+                usuario_id: typeof userFull.id === 'string' ? models.uuidFromString(userFull.id) : userFull.id,
+                ativo: true
+            },
+            { allow_filtering: true }
+        );
+
+        let papeis = [];
+        roles.forEach(r => {
+            papeis = [...papeis, ...(r.papeis || [])];
+        });
+
+        const medicoRepo = require('../repositories/medico.repository');
+        const isMedico = await medicoRepo.findById(userFull.id);
+        if (isMedico && isMedico.ativo) {
+            papeis.push('medico');
+        }
+
+        if (!papeis.includes('paciente')) {
+            papeis.push('paciente');
+        }
+        
+        papeis = [...new Set(papeis)];
+
         return { 
             token,
+            papeis: papeis,
             usuario: {
                 id: userFull.id.toString(),
                 cpf: userFull.cpf,
                 email: userFull.email,
-                nome_completo: userFull.nome_completo
+                nome_completo: userFull.nome_completo,
+                telefone: userFull.telefone,
+                sexo: userFull.sexo,
+                data_nascimento: userFull.data_nascimento
             }
         };
     }

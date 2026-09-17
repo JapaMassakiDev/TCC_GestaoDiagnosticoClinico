@@ -28,10 +28,13 @@ const listarMeusTenants = async (req, res) => {
     try {
         const { models } = require('../config/database');
         const ExpressCassandra = require('express-cassandra');
-        const tenantUsuarios = await models.instance.TenantUsuarioPorUsuario.findAsync({
-            usuario_id: ExpressCassandra.uuid(req.user.id),
-            ativo: true
-        });
+        const tenantUsuarios = await models.instance.tenant_usuarios_por_usuario.findAsync(
+            {
+                usuario_id: models.uuidFromString(req.user.id.toString()),
+                ativo: true
+            },
+            { allow_filtering: true }
+        );
         
         const units = tenantUsuarios.map(t => ({
             id: t.tenant_id.toString(),

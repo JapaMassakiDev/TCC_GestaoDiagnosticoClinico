@@ -27,18 +27,28 @@ const checkCpf = async (req, res) => {
         // Buscar papéis do tenant_usuario
         const { models } = require('../config/database');
         const ExpressCassandra = require('express-cassandra');
-        const roles = await models.instance.TenantUsuarioPorUsuario.findAsync({
-            usuario_id: ExpressCassandra.uuid(exists.usuario_id),
-            ativo: true
-        });
+        const roles = await models.instance.tenant_usuarios_por_usuario.findAsync(
+            {
+                usuario_id: models.uuidFromString(exists.usuario_id.toString()),
+                ativo: true
+            },
+            { allow_filtering: true }
+        );
         
         let papeis = [];
         roles.forEach(r => {
             papeis = [...papeis, ...(r.papeis || [])];
         });
         
-        // Se ainda não tem tenant_usuario mas é paciente, forçamos 'paciente' (ou se a matriz retornar vazia)
-        if (papeis.length === 0) papeis = ['paciente'];
+        const medicoRepo = require('../repositories/medico.repository');
+        const isMedico = await medicoRepo.findById(exists.usuario_id.toString());
+        if (isMedico && isMedico.ativo) {
+            papeis.push('medico');
+        }
+
+        if (!papeis.includes('paciente')) {
+            papeis.push('paciente');
+        }
         
         papeis = [...new Set(papeis)];
 
@@ -50,12 +60,59 @@ const checkCpf = async (req, res) => {
             email: exists.email
         });
     } catch (error) {
-        console.error('Erro ao verificar CPF:', error);
-        return res.status(500).json({ error: 'Erro interno do servidor' });
+        console.error('=================== Erro ao verificar CPF ===================');
+        console.error(error);
+        console.error('===========================================================');
+        return res.status(500).json({ error: 'Erro interno do servidor', message: error.message, stack: error.stack });
+    }
+};
+
+const selecionarPapel = async (req, res) => {
+    try {
+        const { papel } = req.body;
+        const usuarioId = req.user.id;
+        
+        let token = null;
+        if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+            token = req.headers.authorization.split(' ')[1];
+        }
+
+        // Você pode opcionalmente buscar os dados específicos do papel, como CRM se for médico
+        let extraData = {};
+        if (papel === 'medico') {
+            const medicoRepo = require('../repositories/medico.repository');
+            const medico = await medicoRepo.findById(usuarioId);
+            if (medico) {
+                extraData.crm = medico.crm;
+            }
+        }
+
+        const usuarioRepository = require('../repositories/usuario.repository');
+        const userFull = await usuarioRepository.findById(usuarioId);
+
+        return res.status(200).json({
+            token,
+            usuario: {
+                id: userFull.id.toString(),
+                cpf: userFull.cpf,
+                email: userFull.email,
+                nome_completo: userFull.nome_completo,
+                telefone: userFull.telefone,
+                sexo: userFull.sexo,
+                data_nascimento: userFull.data_nascimento,
+                role: papel,
+                papel: papel,
+                ...extraData
+            }
+        });
+    } catch (error) {
+        console.error('Erro em selecionarPapel:', error);
+        return res.status(500).json({ error: 'Erro interno ao selecionar papel' });
     }
 };
 
 module.exports = {
     login,
-    checkCpf
+    checkCpf,
+    selecionarPapel
 };

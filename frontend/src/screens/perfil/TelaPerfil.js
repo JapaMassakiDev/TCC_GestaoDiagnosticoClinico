@@ -189,7 +189,7 @@ export default function TelaPerfil() {
 
       await salvarPerfil(payload);
       setEditVisible(false);
-      Alert.alert("Perfil", "Informações atualizadas no mock.");
+      Alert.alert("Perfil", "Informações atualizadas com sucesso!");
     } catch (error) {
       Alert.alert("Perfil", error.message);
     }

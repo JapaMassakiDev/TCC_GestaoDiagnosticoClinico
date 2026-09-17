@@ -29,8 +29,8 @@ describe('Autenticação (Login & Middleware)', () => {
         });
 
         it('deve retornar 403 se o usuário estiver desativado', async () => {
-            usuarioRepository.findByCpf.mockResolvedValue({ usuario_id: 'fake-uuid' });
-            usuarioRepository.findById.mockResolvedValue({ id: 'fake-uuid', ativo: false });
+            usuarioRepository.findByCpf.mockResolvedValue({ usuario_id: '12345678-1234-1234-1234-123456789012' });
+            usuarioRepository.findById.mockResolvedValue({ id: '12345678-1234-1234-1234-123456789012', ativo: false });
             
             const res = await request(app).post('/auth/login').send({ cpf: '123', senha: '123' });
             expect(res.status).toBe(403);
@@ -39,8 +39,8 @@ describe('Autenticação (Login & Middleware)', () => {
 
         it('deve retornar 401 se a senha for inválida', async () => {
             const hash = await bcrypt.hash('senhaCorreta', 10);
-            usuarioRepository.findByCpf.mockResolvedValue({ usuario_id: 'fake-uuid' });
-            usuarioRepository.findById.mockResolvedValue({ id: 'fake-uuid', ativo: true, senha_hash: hash });
+            usuarioRepository.findByCpf.mockResolvedValue({ usuario_id: '12345678-1234-1234-1234-123456789012' });
+            usuarioRepository.findById.mockResolvedValue({ id: '12345678-1234-1234-1234-123456789012', ativo: true, senha_hash: hash });
             
             const res = await request(app).post('/auth/login').send({ cpf: '123', senha: 'senhaIncorreta' });
             expect(res.status).toBe(401);
@@ -49,8 +49,8 @@ describe('Autenticação (Login & Middleware)', () => {
 
         it('deve retornar 200 e o token JWT se os dados forem válidos', async () => {
             const hash = await bcrypt.hash('senhaCorreta', 10);
-            usuarioRepository.findByCpf.mockResolvedValue({ usuario_id: 'fake-uuid' });
-            usuarioRepository.findById.mockResolvedValue({ id: 'fake-uuid', ativo: true, senha_hash: hash });
+            usuarioRepository.findByCpf.mockResolvedValue({ usuario_id: '12345678-1234-1234-1234-123456789012' });
+            usuarioRepository.findById.mockResolvedValue({ id: '12345678-1234-1234-1234-123456789012', ativo: true, senha_hash: hash });
             
             const res = await request(app).post('/auth/login').send({ cpf: '123', senha: 'senhaCorreta' });
             expect(res.status).toBe(200);

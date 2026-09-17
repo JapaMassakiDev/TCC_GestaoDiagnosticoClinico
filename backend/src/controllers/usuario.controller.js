@@ -42,9 +42,45 @@ const adicionarPapel = async (req, res) => {
         const result = await usuarioService.adicionarPapel(id, req.body);
         return res.status(200).json({ message: 'Papel adicionado', data: result });
     } catch (error) {
-        if (error.message.includes('não confere') || error.message.includes('inválido')) {
+        if (error.message.includes('não confere') || error.message.includes('inválido') || error.message.includes('incorreta')) {
             return res.status(400).json({ error: error.message });
         }
+        console.error('Erro em adicionarPapel:', error);
+        return res.status(500).json({ error: 'Erro interno' });
+    }
+};
+
+const atualizarUsuario = async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        // Verifica se o id da rota é o mesmo do token (segurança)
+        if (req.user && req.user.id !== id) {
+            return res.status(403).json({ error: 'Você não tem permissão para alterar outro usuário.' });
+        }
+
+        const user = await usuarioService.atualizar(id, req.body);
+        
+        // Retornar no formato esperado pelo normalizarUsuario do frontend
+        return res.status(200).json({
+            usuario: {
+                id: user.id.toString(),
+                cpf: user.cpf,
+                email: user.email,
+                nome_completo: user.nome_completo,
+                telefone: user.telefone,
+                sexo: user.sexo,
+                data_nascimento: user.data_nascimento
+            }
+        });
+    } catch (error) {
+        if (error.message.includes('não encontrado')) {
+            return res.status(404).json({ error: error.message });
+        }
+        if (error.message.includes('mínimo')) {
+            return res.status(400).json({ error: error.message });
+        }
+        console.error('Erro em atualizarUsuario:', error);
         return res.status(500).json({ error: 'Erro interno' });
     }
 };
@@ -52,5 +88,6 @@ const adicionarPapel = async (req, res) => {
 module.exports = {
     criarUsuario,
     buscarUsuarioPorCpf,
-    adicionarPapel
+    adicionarPapel,
+    atualizarUsuario
 };

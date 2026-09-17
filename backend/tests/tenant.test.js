@@ -12,7 +12,7 @@ describe('Cadastro de Instituição (Tenant)', () => {
 
     beforeAll(() => {
         // Gerar um token fake para simular um usuário logado
-        token = jwt.sign({ sub: 'uuid-do-usuario-logado' }, process.env.JWT_SECRET || 'super_secret_key_tcc');
+        token = jwt.sign({ sub: '12345678-1234-1234-1234-123456789012' }, process.env.JWT_SECRET || 'super_secret_key_tcc');
     });
 
     beforeEach(() => {
@@ -23,7 +23,7 @@ describe('Cadastro de Instituição (Tenant)', () => {
 
     it('deve bloquear a requisição se não enviar token (401)', async () => {
         const response = await request(app).post('/tenants').send({
-            cnpj: '12345678901234',
+            tipo_tenant: 'CLINICA', cnpj: '12345678901234',
             razao_social: 'Clínica A',
             nome_fantasia: 'Clínica A'
         });
@@ -33,13 +33,13 @@ describe('Cadastro de Instituição (Tenant)', () => {
 
     it('deve cadastrar uma instituição com sucesso (201)', async () => {
         tenantRepository.findByCnpj.mockResolvedValue(null);
-        tenantRepository.create.mockResolvedValue('uuid-novo-tenant');
+        tenantRepository.create.mockResolvedValue('11111111-1111-1111-1111-111111111111');
 
         const response = await request(app)
             .post('/tenants')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                cnpj: '12345678901234',
+                tipo_tenant: 'CLINICA', cnpj: '12345678901234',
                 razao_social: 'Clínica Saúde',
                 nome_fantasia: 'Saúde Mais'
             });
@@ -55,7 +55,7 @@ describe('Cadastro de Instituição (Tenant)', () => {
             .post('/tenants')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                cnpj: '123', // Tamanho inválido
+                tipo_tenant: 'CLINICA', cnpj: '123', // Tamanho inválido
                 razao_social: 'Clínica Saúde',
                 nome_fantasia: 'Saúde Mais'
             });
@@ -70,7 +70,7 @@ describe('Cadastro de Instituição (Tenant)', () => {
             .post('/tenants')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                cnpj: '12345678901234',
+                tipo_tenant: 'CLINICA', cnpj: '12345678901234',
                 nome_fantasia: 'Saúde Mais'
             });
 
@@ -79,13 +79,13 @@ describe('Cadastro de Instituição (Tenant)', () => {
     });
 
     it('deve falhar se o CNPJ já estiver cadastrado (400)', async () => {
-        tenantRepository.findByCnpj.mockResolvedValue({ cnpj: '12345678901234' });
+        tenantRepository.findByCnpj.mockResolvedValue({ tipo_tenant: 'CLINICA', cnpj: '12345678901234' });
 
         const response = await request(app)
             .post('/tenants')
             .set('Authorization', `Bearer ${token}`)
             .send({
-                cnpj: '12345678901234',
+                tipo_tenant: 'CLINICA', cnpj: '12345678901234',
                 razao_social: 'Clínica Saúde',
                 nome_fantasia: 'Saúde Mais'
             });

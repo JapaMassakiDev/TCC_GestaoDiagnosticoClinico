@@ -65,7 +65,7 @@ describe('Cadastro de Usuário (Integração Parcial)', () => {
             });
 
         expect(response.status).toBe(400);
-        expect(response.body.error).toMatch(/mínimo 8 caracteres/);
+        expect(response.body.error).toMatch(/6 caracteres/);
     });
 
     it('deve falhar e retornar 400 se o e-mail já estiver cadastrado no banco', async () => {
