@@ -5,7 +5,12 @@ const criarDiagnostico = async (req, res) => {
         const tenant_id = req.tenant.id; 
         const medico_id = req.user.id;   
 
-        const result = await diagnosticoService.emitirDiagnostico(req.body, tenant_id, medico_id);
+        const result = await diagnosticoService.emitirDiagnostico(
+            req.body,
+            tenant_id,
+            medico_id,
+            { tipo_tenant: req.tenant.tipo_tenant, tenant_nome: req.tenant.nome }
+        );
         
         return res.status(201).json({ message: 'Diagnóstico emitido com sucesso', data: result });
     } catch (error) {

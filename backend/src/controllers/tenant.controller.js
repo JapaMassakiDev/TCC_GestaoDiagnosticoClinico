@@ -1,4 +1,5 @@
 const tenantService = require('../services/tenant.service');
+const tenantRepository = require('../repositories/tenant.repository');
 
 const criarTenant = async (req, res) => {
     try {
@@ -36,12 +37,16 @@ const listarMeusTenants = async (req, res) => {
             { allow_filtering: true }
         );
         
-        const units = tenantUsuarios.map(t => ({
-            id: t.tenant_id.toString(),
-            name: t.tenant_nome,
-            address: "",
-            phone: "",
-            cep: ""
+        const units = await Promise.all(tenantUsuarios.map(async (t) => {
+            const tenant = await tenantRepository.findById(t.tenant_id);
+            return {
+                id: t.tenant_id.toString(),
+                name: t.tenant_nome,
+                tipo_tenant: tenant?.tipo_tenant || 'CLINICA',
+                address: "",
+                phone: "",
+                cep: ""
+            };
         }));
         
         return res.status(200).json(units);

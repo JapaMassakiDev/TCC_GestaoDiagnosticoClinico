@@ -1,9 +1,10 @@
 const diagnosticoRepository = require('../repositories/diagnostico.repository');
 const medicoRepository = require('../repositories/medico.repository');
 const tenantRepository = require('../repositories/tenant.repository');
+const usuarioRepository = require('../repositories/usuario.repository');
 
 class DiagnosticoService {
-    async emitirDiagnostico({ paciente_id, titulo, descricao, codigo_cid }, tenant_id, medico_id) {
+    async emitirDiagnostico({ paciente_id, titulo, descricao, codigo_cid }, tenant_id, medico_id, contextoTenant = {}) {
         if (!titulo || titulo.trim().length === 0) {
             throw new Error('O título do diagnóstico é obrigatório.');
         }
@@ -26,7 +27,22 @@ class DiagnosticoService {
         }
 
         // Regra 4 e 5: Paciente pertence ao mesmo tenant e possui o papel PACIENTE
-        const pacienteNoTenant = await tenantRepository.findUserInTenant(tenant_id, paciente_id);
+        let pacienteNoTenant = await tenantRepository.findUserInTenant(tenant_id, paciente_id);
+        if (!pacienteNoTenant && contextoTenant.tipo_tenant === 'AUTONOMO') {
+            const paciente = await usuarioRepository.findById(paciente_id);
+            if (!paciente) {
+                throw new Error('Paciente não encontrado no sistema.');
+            }
+            if (paciente.ativo === false) {
+                throw new Error('O cadastro do paciente está inativo no sistema.');
+            }
+            pacienteNoTenant = await tenantRepository.upsertUserInTenant({
+                tenantId: tenant_id,
+                usuarioId: paciente_id,
+                tenantNome: contextoTenant.tenant_nome || 'Atendimento autônomo',
+                papeis: ['PACIENTE']
+            });
+        }
         if (!pacienteNoTenant) {
             throw new Error('Paciente não pertence a esta instituição.');
         }
@@ -54,6 +70,7 @@ class DiagnosticoService {
             paciente_id,
             titulo,
             codigo_cid,
+            tipo_tenant: contextoTenant.tipo_tenant || 'CLINICA',
             status: 'ATIVO'
         };
     }

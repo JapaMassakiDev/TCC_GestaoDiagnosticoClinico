@@ -1,4 +1,6 @@
 const tenantRepository = require('../repositories/tenant.repository');
+const medicoRepository = require('../repositories/medico.repository');
+const usuarioRepository = require('../repositories/usuario.repository');
 const integrationsService = require('./integrations.service');
 
 class TenantService {
@@ -52,8 +54,13 @@ class TenantService {
             throw new Error('Razão social e nome fantasia são obrigatórios.');
         }
 
-        // O usuário que cria a instituição ganha papéis de administrador e paciente padrão
+        // O usuário que cria a instituição ganha papéis de administrador e paciente padrão.
+        // No tenant profissional autônomo, o perfil médico ativo também recebe MEDICO.
         const papeis = ['DONO', 'PACIENTE'];
+        if (tipo_tenant === 'AUTONOMO') {
+            const medico = await medicoRepository.findById(usuarioId);
+            if (medico?.ativo) papeis.push('MEDICO');
+        }
 
         const tenantId = await tenantRepository.create({
             tipo_tenant,
@@ -74,6 +81,53 @@ class TenantService {
             nome_fantasia,
             papeis
         };
+    }
+
+    async obterOuCriarTenantAutonomo(usuarioId) {
+        const medico = await medicoRepository.findById(usuarioId);
+        if (!medico || !medico.ativo) {
+            const error = new Error('Perfil profissional do médico inválido ou inativo.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        const usuario = await usuarioRepository.findById(usuarioId);
+        const cpf = String(usuario?.cpf || '').replace(/\D/g, '');
+        if (cpf.length !== 11) {
+            const error = new Error('CPF do médico inválido para atendimento autônomo.');
+            error.statusCode = 400;
+            throw error;
+        }
+
+        const nome = usuario.nome_completo || usuario.nome || 'Atendimento autônomo';
+        const existente = await tenantRepository.findByCpf(cpf);
+        if (existente && existente.ativo === false) {
+            const error = new Error('O tenant autônomo deste médico está inativo.');
+            error.statusCode = 403;
+            throw error;
+        }
+
+        if (existente) {
+            const tenantId = existente.tenant_id.toString();
+            await tenantRepository.upsertUserInTenant({
+                tenantId,
+                usuarioId,
+                tenantNome: existente.nome_fantasia || nome,
+                papeis: ['DONO', 'PACIENTE', 'MEDICO']
+            });
+            return { id: tenantId, nome: existente.nome_fantasia || nome, tipo_tenant: 'AUTONOMO' };
+        }
+
+        const tenantId = await tenantRepository.create({
+            tipo_tenant: 'AUTONOMO',
+            cpf,
+            razao_social: nome,
+            nome_fantasia: nome,
+            dono_id: usuarioId,
+            papeis: ['DONO', 'PACIENTE', 'MEDICO']
+        });
+
+        return { id: tenantId.toString(), nome, tipo_tenant: 'AUTONOMO' };
     }
 }
 

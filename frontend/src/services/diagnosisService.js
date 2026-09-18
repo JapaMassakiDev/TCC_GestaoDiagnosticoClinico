@@ -55,6 +55,7 @@ function normalizarDiagnostico(diagnostico = {}) {
   const descricao = diagnostico.descricao ?? diagnostico.description ?? "";
   const medicamentos = (diagnostico.medicamentos ?? diagnostico.medications ?? []).map(normalizarMedicamento);
   const criadoEm = diagnostico.criadoEm ?? diagnostico.createdAt ?? diagnostico.dataCriacao ?? diagnostico.created_at ?? "";
+  const tipoTenant = diagnostico.tipoTenant ?? diagnostico.tipo_tenant ?? "CLINICA";
 
   return {
     id: diagnostico.id ?? diagnostico.diagnostico_id, pacienteId, patientId: pacienteId, pacienteNome, patientName: pacienteNome,
@@ -62,7 +63,7 @@ function normalizarDiagnostico(diagnostico = {}) {
     medicoCrm, doctorCrm: medicoCrm, unidadeId, unitId: unidadeId, unidadeNome, unitName: unidadeNome,
     linhaTempoId, timelineId: linhaTempoId, linhaTempoNome, timelineName: linhaTempoNome, titulo, title: titulo,
     cid: cid || String(diagnostico.codigo_cid ?? ""), tituloCid, cidTitle: tituloCid, descricao, description: descricao, medicamentos, medications: medicamentos,
-    criadoEm, createdAt: criadoEm,
+    criadoEm, createdAt: criadoEm, tipoTenant, tipo_tenant: tipoTenant,
   };
 }
 
@@ -78,10 +79,11 @@ function normalizarUnidade(unidade = {}) {
   const endereco = unidade.endereco ?? unidade.address ?? "";
   const numero = unidade.numero ?? unidade.number ?? "";
   const telefone = unidade.telefone ?? unidade.phone ?? "";
+  const tipoTenant = unidade.tipoTenant ?? unidade.tipo_tenant ?? "CLINICA";
   return {
     id: unidade.id, nome, name: nome, cep: unidade.cep ?? "",
     endereco, address: endereco, numero, number: numero, telefone, phone: telefone,
-    logoUri: unidade.logoUri ?? unidade.logo ?? null,
+    logoUri: unidade.logoUri ?? unidade.logo ?? null, tipoTenant, tipo_tenant: tipoTenant,
   };
 }
 
@@ -189,6 +191,7 @@ export async function criarDiagnostico({
   pacienteId,
   medicoId,
   unidadeId,
+  tipoTenant,
   linhaTempoId = null,
   titulo,
   cid,
@@ -202,6 +205,7 @@ export async function criarDiagnostico({
     paciente_id: pacienteId,
     medico_id: medicoId,
     tenant_id: unidadeId,
+    tipo_tenant: tipoTenant,
     linha_tempo_id: linhaTempoId,
     titulo,
     codigo_cid: String(cid || "").toUpperCase(),
@@ -220,7 +224,7 @@ export async function criarDiagnostico({
   const resposta = await requisitarApi("/diagnosticos", {
     method: "POST",
     body: JSON.stringify(corpoApi),
-    headers: unidadeId ? { "X-Tenant-ID": unidadeId } : {},
+    headers: tipoTenant === "CLINICA" && unidadeId ? { "X-Tenant-ID": unidadeId } : {},
   });
   return normalizarDiagnostico(resposta?.data ?? resposta?.diagnostico ?? resposta);
 }
@@ -232,6 +236,7 @@ export async function atualizarDiagnostico(diagnosticoId, dados) {
     paciente_id: dados.pacienteId,
     medico_id: dados.medicoId,
     tenant_id: dados.unidadeId,
+    tipo_tenant: dados.tipoTenant,
     linha_tempo_id: dados.linhaTempoId || null,
     titulo: dados.titulo,
     codigo_cid: String(dados.cid || "").toUpperCase(),
@@ -250,7 +255,7 @@ export async function atualizarDiagnostico(diagnosticoId, dados) {
   const resposta = await requisitarApi(`/diagnosticos/${diagnosticoId}`, {
     method: "PUT",
     body: JSON.stringify(corpoApi),
-    headers: dados.unidadeId ? { "X-Tenant-ID": dados.unidadeId } : {},
+    headers: dados.tipoTenant === "CLINICA" && dados.unidadeId ? { "X-Tenant-ID": dados.unidadeId } : {},
   });
   return normalizarDiagnostico(resposta?.data ?? resposta?.diagnostico ?? resposta);
 }
@@ -298,13 +303,9 @@ export async function vincularDiagnosticosLinhaTempo({ linhaTempoId, pacienteId,
 export async function listarUnidadesMedico(medicoId) {
   if (!medicoId) return [];
 
-  try {
-    const resposta = await requisitarComAlternativas([
-      { rota: "/tenants/me" },
-    ]);
-    const unidades = Array.isArray(resposta) ? resposta : resposta?.units ?? resposta?.unidades ?? [resposta];
-    return unidades.filter(Boolean).map(normalizarUnidade);
-  } catch {
-    return [];
-  }
+  const resposta = await requisitarComAlternativas([
+    { rota: "/tenants/me" },
+  ]);
+  const unidades = Array.isArray(resposta) ? resposta : resposta?.units ?? resposta?.unidades ?? [resposta];
+  return unidades.filter(Boolean).map(normalizarUnidade);
 }

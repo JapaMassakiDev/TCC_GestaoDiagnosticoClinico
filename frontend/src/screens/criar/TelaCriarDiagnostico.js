@@ -39,14 +39,29 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
   const telaLarga = largura >= 900;
   const acoesCompactas = largura < 640;
   const [unidades, definirUnidades] = useState([]);
+  const [unidadesCarregadas, definirUnidadesCarregadas] = useState(false);
+  const [erroUnidades, definirErroUnidades] = useState("");
+  const [tentativaUnidades, definirTentativaUnidades] = useState(0);
+  const [tipoTenant, definirTipoTenant] = useState("");
   
   useEffect(() => {
     let ativo = true;
-    listarUnidadesMedico(usuario.id).then(resposta => {
-      if (ativo && Array.isArray(resposta)) definirUnidades(resposta);
-    });
+    definirUnidadesCarregadas(false);
+    definirErroUnidades("");
+    listarUnidadesMedico(usuario.id)
+      .then(resposta => {
+        if (!ativo) return;
+        const unidadesClinicas = Array.isArray(resposta)
+          ? resposta.filter((item) => item.tipoTenant !== "AUTONOMO")
+          : [];
+        definirUnidades(unidadesClinicas);
+      })
+      .catch((error) => {
+        if (ativo) definirErroUnidades(error?.message || "Não foi possível consultar as unidades vinculadas.");
+      })
+      .finally(() => ativo && definirUnidadesCarregadas(true));
     return () => { ativo = false; };
-  }, [usuario.id]);
+  }, [tentativaUnidades, usuario.id]);
 
   const [modalPaciente, definirModalPaciente] = useState(!modoEdicao);
   const [modalConfirmacao, definirModalConfirmacao] = useState(false);
@@ -55,7 +70,7 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
   const [termoBusca, definirTermoBusca] = useState("");
   const [opcoesPacientes, definirOpcoesPacientes] = useState([]);
   const [paciente, definirPaciente] = useState(null);
-  const [unidadeId, definirUnidadeId] = useState(unidades.length === 1 ? unidades[0].id : "");
+  const [unidadeId, definirUnidadeId] = useState("");
   const [titulo, definirTitulo] = useState("");
   const [cid, definirCid] = useState("");
   const [tituloCid, definirTituloCid] = useState("");
@@ -76,6 +91,7 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
       cpf: edicaoDiagnostico.pacienteCpf,
     });
     definirUnidadeId(edicaoDiagnostico.unidadeId || "");
+    definirTipoTenant(edicaoDiagnostico.tipoTenant || (edicaoDiagnostico.unidadeId ? "CLINICA" : "AUTONOMO"));
     definirTitulo(edicaoDiagnostico.titulo || "");
     definirCid(edicaoDiagnostico.cid || "");
     definirTituloCid(edicaoDiagnostico.tituloCid || "");
@@ -85,11 +101,13 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
     definirModalPaciente(false);
   }, [edicaoDiagnostico]);
 
-  const unidade = unidades.find((u) => u.id === unidadeId) || (unidades.length === 1 ? unidades[0] : null);
+  const unidade = tipoTenant === "CLINICA" ? unidades.find((u) => u.id === unidadeId) || null : null;
 
   useEffect(() => {
-    if (unidades.length === 1) definirUnidadeId(unidades[0].id);
-  }, [unidades]);
+    if (!unidadesCarregadas || erroUnidades || modoEdicao) return;
+    definirUnidadeId("");
+    definirTipoTenant(unidades.length === 0 ? "AUTONOMO" : "");
+  }, [erroUnidades, modoEdicao, unidades, unidadesCarregadas]);
 
   useEffect(() => {
     let ativo = true;
@@ -105,11 +123,12 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
 
   useEffect(() => {
     if (!paciente) return;
-    Promise.all([listarLinhasTempo(paciente.id), listarDiagnosticosPaciente(paciente.id, unidadeId)]).then(([linhasRecebidas, diagnosticosRecebidos]) => {
+    const tenantClinicaId = tipoTenant === "CLINICA" ? unidadeId : "";
+    Promise.all([listarLinhasTempo(paciente.id), listarDiagnosticosPaciente(paciente.id, tenantClinicaId)]).then(([linhasRecebidas, diagnosticosRecebidos]) => {
       definirLinhasTempo(linhasRecebidas);
       definirDiagnosticosPaciente(diagnosticosRecebidos);
     });
-  }, [paciente, unidadeId]);
+  }, [paciente, tipoTenant, unidadeId]);
 
   function escolherPaciente(pacienteEscolhido) {
     definirPaciente(pacienteEscolhido);
@@ -154,8 +173,8 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
 
   function solicitarSalvamento() {
     if (!paciente) return definirModalPaciente(true);
-    if (!unidadeId || !titulo.trim() || !cid.trim() || !descricao.trim()) {
-      Alert.alert("Diagnóstico", "Preencha unidade, título, CID-11 e descrição.");
+    if (!tipoTenant || (tipoTenant === "CLINICA" && !unidadeId) || !titulo.trim() || !cid.trim() || !descricao.trim()) {
+      Alert.alert("Diagnóstico", "Selecione o contexto do atendimento e preencha título, CID-11 e descrição.");
       return;
     }
     definirModalConfirmacao(true);
@@ -167,6 +186,7 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
         pacienteId: paciente.id,
         medicoId: usuario.id,
         unidadeId,
+        tipoTenant,
         linhaTempoId: linhaTempoId || null,
         titulo: titulo.trim(),
         cid: cid.trim().toUpperCase(),
@@ -199,6 +219,8 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
       definirPaciente(null);
       definirTermoBusca("");
       definirOpcoesPacientes([]);
+      definirUnidadeId("");
+      definirTipoTenant(unidades.length === 0 ? "AUTONOMO" : "");
       definirModalPaciente(!modoEdicao);
     } catch (erro) {
       Alert.alert("Erro ao salvar diagnóstico", erro?.message || "A API não aceitou o diagnóstico.");
@@ -236,15 +258,34 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
           <View className={`${telaLarga ? "flex-[1.15]" : ""} rounded-3xl border border-mint-100 bg-white p-5 hover:shadow-xl transition-all duration-200`}>
             <Text className="mb-4 text-xl font-black text-ink">Documento clínico</Text>
 
-            {unidades.length > 1 && !unidadeId ? (
+            {erroUnidades ? (
+              <View className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <Text className="font-black text-red-700">Não foi possível consultar seus vínculos</Text>
+                <Text className="mb-3 mt-1 text-sm text-red-600">{erroUnidades}</Text>
+                <BotaoPrimario titulo="Tentar novamente" variante="secondary" aoPressionar={() => definirTentativaUnidades((valor) => valor + 1)} />
+              </View>
+            ) : null}
+
+            {unidadesCarregadas && !erroUnidades && unidades.length > 0 && !tipoTenant ? (
               <View className="mb-5 rounded-2xl border border-mint-100 bg-mint-50 p-4">
-                <Text className="font-black text-mint-900">Qual unidade deseja utilizar?</Text>
-                <Text className="mb-3 mt-1 text-sm text-mint-700">Escolha a unidade para liberar o documento clínico.</Text>
+                <View className="flex-row items-start justify-between gap-3">
+                  <View className="flex-1">
+                    <Text className="font-black text-mint-900">Qual unidade deseja utilizar?</Text>
+                    <Text className="mb-3 mt-1 text-sm text-mint-700">Escolha uma unidade ou feche esta opção para atender como autônomo.</Text>
+                  </View>
+                  <Pressable
+                    onPress={() => { definirUnidadeId(""); definirTipoTenant("AUTONOMO"); }}
+                    accessibilityLabel="Atender como autônomo"
+                    className="h-9 w-9 items-center justify-center rounded-full bg-white"
+                  >
+                    <Ionicons name="close" size={22} color="#357257" />
+                  </Pressable>
+                </View>
                 <View className="flex-row flex-wrap gap-3">
                   {unidades.map((u) => (
                     <Pressable
                       key={u.id}
-                      onPress={() => definirUnidadeId(u.id)}
+                      onPress={() => { definirUnidadeId(u.id); definirTipoTenant("CLINICA"); }}
                       className="min-w-[180px] flex-1 rounded-2xl border border-mint-300 bg-white px-4 py-4 active:bg-mint-100"
                     >
                       <View className="flex-row items-center gap-3">
@@ -257,33 +298,27 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
               </View>
             ) : null}
 
-            {unidades.length === 0 ? (
-              <View className="mb-5 items-center rounded-2xl border border-mint-100 bg-mint-50 p-6">
-                <Ionicons name="business-outline" size={30} color="#86958F" />
-                <Text className="mt-3 text-center font-black text-mint-900">Nenhuma unidade vinculada</Text>
-                <Text className="mt-1 text-center text-sm text-mint-700">
-                  Vincule o médico a uma unidade para liberar o documento clínico.
-                </Text>
-              </View>
-            ) : null}
-
-            {unidade ? (
+            {tipoTenant ? (
               <>
                 <View className="mb-5 rounded-2xl bg-mint-50 p-4">
                   <View className="flex-row items-center">
                     {unidade?.logoUri ? <Image source={{ uri: unidade.logoUri }} className="mr-3 h-14 w-14 rounded-xl" /> : (
                       <View className="mr-3 h-14 w-14 items-center justify-center rounded-xl bg-mint-200">
-                        <Ionicons name="business" size={26} color="#357257" />
+                        <Ionicons name={tipoTenant === "CLINICA" ? "business" : "person"} size={26} color="#357257" />
                       </View>
                     )}
                     <View className="flex-1">
-                      <Text className="font-black text-mint-900">{unidade.nome}</Text>
-                      <Text className="mt-1 text-sm text-mint-800">{unidade.cep ? `CEP ${String(unidade.cep).replace(/(\d{5})(\d{3})/, "$1-$2")}` : ""}</Text>
-                      <Text className="text-sm text-mint-800">{unidade.endereco || ""}{unidade.numero ? `, ${unidade.numero}` : ""}</Text>
-                      <Text className="text-sm text-mint-800">{unidade.telefone || ""}</Text>
+                      <Text className="font-black text-mint-900">{tipoTenant === "CLINICA" ? unidade?.nome : "Atendimento autônomo"}</Text>
+                      {tipoTenant === "CLINICA" ? (
+                        <>
+                          <Text className="mt-1 text-sm text-mint-800">{unidade?.cep ? `CEP ${String(unidade.cep).replace(/(\d{5})(\d{3})/, "$1-$2")}` : ""}</Text>
+                          <Text className="text-sm text-mint-800">{unidade?.endereco || ""}{unidade?.numero ? `, ${unidade.numero}` : ""}</Text>
+                          <Text className="text-sm text-mint-800">{unidade?.telefone || ""}</Text>
+                        </>
+                      ) : <Text className="mt-1 text-sm text-mint-800">O diagnóstico será emitido em seu contexto profissional próprio.</Text>}
                     </View>
-                    {unidades.length > 1 ? (
-                      <Pressable onPress={() => definirUnidadeId("")} className="ml-2 rounded-xl border border-mint-300 px-3 py-2">
+                    {unidades.length > 0 ? (
+                      <Pressable onPress={() => { definirUnidadeId(""); definirTipoTenant(""); }} className="ml-2 rounded-xl border border-mint-300 px-3 py-2">
                         <Text className="text-xs font-bold text-mint-700">Trocar</Text>
                       </Pressable>
                     ) : null}
@@ -407,7 +442,9 @@ export default function TelaCriarDiagnostico({ navigation: navegacao }) {
             <View className="my-5 rounded-2xl bg-mint-50 p-4 hover:shadow-xl transition-all duration-200">
               <Text className="font-black text-ink">{titulo} · {cid}</Text>
               <Text className="mt-2 text-sm text-slate-600">Paciente: {paciente?.nome}</Text>
-              <Text className="text-sm text-slate-600">Unidade: {unidade?.nome}</Text>
+              <Text className="text-sm text-slate-600">
+                {tipoTenant === "CLINICA" ? `Unidade: ${unidade?.nome || "-"}` : "Contexto: Atendimento autônomo"}
+              </Text>
             </View>
             <View className="gap-3"><BotaoPrimario titulo={modoEdicao ? "Confirmar alteração" : "Confirmar e salvar"} aoPressionar={salvar} /><BotaoPrimario titulo="Revisar" variante="secondary" aoPressionar={() => definirModalConfirmacao(false)} /></View>
           </View>

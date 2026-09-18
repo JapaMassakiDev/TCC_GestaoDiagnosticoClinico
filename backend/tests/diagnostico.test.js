@@ -3,17 +3,20 @@ const app = require('../src/app');
 const diagnosticoRepository = require('../src/repositories/diagnostico.repository');
 const medicoRepository = require('../src/repositories/medico.repository');
 const tenantRepository = require('../src/repositories/tenant.repository');
+const usuarioRepository = require('../src/repositories/usuario.repository');
 const jwt = require('jsonwebtoken');
 
 jest.mock('../src/repositories/diagnostico.repository');
 jest.mock('../src/repositories/medico.repository');
 jest.mock('../src/repositories/tenant.repository');
+jest.mock('../src/repositories/usuario.repository');
 
 describe('Diagnósticos (Emissão e Consulta)', () => {
     let tokenMedico, tokenPaciente;
     const tenantId = 'd290f1ee-6c54-4b01-90e6-d701748f0851';
     const medicoId = 'a390f1ee-6c54-4b01-90e6-d701748f0851';
     const pacienteId = 'b490f1ee-6c54-4b01-90e6-d701748f0851';
+    const tenantAutonomoId = 'e690f1ee-6c54-4b01-90e6-d701748f0851';
 
     beforeAll(() => {
         tokenMedico = jwt.sign({ sub: medicoId }, process.env.JWT_SECRET || 'super_secret_key_tcc');
@@ -30,6 +33,10 @@ describe('Diagnósticos (Emissão e Consulta)', () => {
         });
 
         medicoRepository.findById.mockResolvedValue({ ativo: true });
+        usuarioRepository.findById.mockImplementation(async (id) => id === medicoId
+            ? { id: medicoId, cpf: '98765432100', nome_completo: 'Médico Autônomo', ativo: true }
+            : { id, ativo: true });
+        tenantRepository.upsertUserInTenant.mockResolvedValue({ ativo: true, papeis: ['PACIENTE'] });
         diagnosticoRepository.create.mockResolvedValue('novo-diagnostico-uuid');
         
         diagnosticoRepository.findByTenant.mockResolvedValue({
@@ -57,6 +64,39 @@ describe('Diagnósticos (Emissão e Consulta)', () => {
                 });
             expect(response.status).toBe(201);
             expect(diagnosticoRepository.create).toHaveBeenCalled();
+        });
+
+        it('deve emitir diagnóstico autônomo sem X-Tenant-ID (201)', async () => {
+            tenantRepository.findByCpf.mockResolvedValue(null);
+            tenantRepository.create.mockResolvedValue(tenantAutonomoId);
+
+            const response = await request(app)
+                .post('/diagnosticos')
+                .set('Authorization', `Bearer ${tokenMedico}`)
+                .send({
+                    tipo_tenant: 'AUTONOMO',
+                    paciente_id: pacienteId,
+                    titulo: 'Consulta autônoma',
+                    descricao: 'Acompanhamento',
+                    codigo_cid: 'Z00'
+                });
+
+            expect(response.status).toBe(201);
+            expect(tenantRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+                tipo_tenant: 'AUTONOMO',
+                cpf: '98765432100',
+                papeis: expect.arrayContaining(['MEDICO'])
+            }));
+            expect(tenantRepository.upsertUserInTenant).toHaveBeenCalledWith(expect.objectContaining({
+                tenantId: tenantAutonomoId,
+                usuarioId: pacienteId,
+                papeis: ['PACIENTE']
+            }));
+            expect(diagnosticoRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({ tenant_id: tenantAutonomoId, medico_id: medicoId, paciente_id: pacienteId }),
+                'CRIAR_DIAGNOSTICO'
+            );
+            expect(response.body.data.tipo_tenant).toBe('AUTONOMO');
         });
 
         it('deve falhar se faltar o título (400)', async () => {

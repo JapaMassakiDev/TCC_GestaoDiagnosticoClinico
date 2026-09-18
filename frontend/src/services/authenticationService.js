@@ -72,6 +72,16 @@ export async function entrarComCpf({ cpf, senha }) {
   return { token: resposta.token, user: usuario, papeis: usuario.papeis };
 }
 
+export async function validarSenhaAtual({ cpf, senha }) {
+  const cpfLimpo = somenteDigitos(cpf);
+  if (!senha) throw new Error("Informe sua senha atual.");
+  await requisitarApi("/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ cpf: cpfLimpo, senha }),
+  });
+  return true;
+}
+
 export async function selecionarPapelAcesso({ papel, crm, cnpj }) {
   const resposta = await requisitarApi("/auth/selecionar-papel", {
     method: "POST",

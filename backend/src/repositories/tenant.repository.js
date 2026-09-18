@@ -3,6 +3,11 @@ const { models } = require('../config/database');
 const ExpressCassandra = require('express-cassandra');
 
 class TenantRepository {
+    async findById(tenantId) {
+        const id = typeof tenantId === 'string' ? models.uuidFromString(tenantId) : tenantId;
+        return await schemas.Tenant.findOneAsync({ id });
+    }
+
     async findByCnpj(cnpj) {
         return await schemas.TenantPorCnpj.findOneAsync({ cnpj });
     }
@@ -16,6 +21,40 @@ class TenantRepository {
 
     async findByCpf(cpf) {
         return await schemas.TenantPorCpf.findOneAsync({ cpf });
+    }
+
+    async upsertUserInTenant({ tenantId, usuarioId, tenantNome, papeis }) {
+        const tenantUuid = typeof tenantId === 'string' ? models.uuidFromString(tenantId) : tenantId;
+        const usuarioUuid = typeof usuarioId === 'string' ? models.uuidFromString(usuarioId) : usuarioId;
+        const existente = await this.findUserInTenant(tenantId.toString(), usuarioId.toString());
+        const papeisCombinados = [...new Set([...(existente?.papeis || []), ...papeis])];
+        const timestamp = new Date();
+
+        const porTenant = new schemas.TenantUsuarioPorTenant({
+            tenant_id: tenantUuid,
+            usuario_id: usuarioUuid,
+            papeis: papeisCombinados,
+            ativo: true,
+            created_at: existente?.created_at || timestamp,
+            updated_at: timestamp
+        });
+        const porUsuario = new schemas.TenantUsuarioPorUsuario({
+            usuario_id: usuarioUuid,
+            tenant_id: tenantUuid,
+            tenant_nome: tenantNome,
+            papeis: papeisCombinados,
+            ativo: true
+        });
+
+        return new Promise((resolve, reject) => {
+            models.doBatch([
+                porTenant.save({ return_query: true }),
+                porUsuario.save({ return_query: true })
+            ], (err) => {
+                if (err) return reject(err);
+                resolve({ ativo: true, papeis: papeisCombinados });
+            });
+        });
     }
 
     async create(tenantData) {

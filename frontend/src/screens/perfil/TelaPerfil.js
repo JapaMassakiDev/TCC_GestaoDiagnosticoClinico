@@ -13,7 +13,7 @@ import CamposLocalizacaoUnidade from "../../components/CamposLocalizacaoUnidade"
 import { buscarCep, validarEnderecoCep } from "../../services/cepService";
 import { usarAutenticacao } from "../../contexts/AuthenticationContext";
 import { usarAutorizacoes } from "../../contexts/AuthorizationContext";
-import { verificarCpf } from "../../services/authenticationService";
+import { validarSenhaAtual, verificarCpf } from "../../services/authenticationService";
 import { consultarCnpj } from "../../services/cnpjService";
 import {
   dataBrParaIso,
@@ -30,6 +30,10 @@ export default function TelaPerfil() {
   const { usuario, salvarPerfil, sair, carregando, edicaoDiagnostico } = usarAutenticacao();
   const { quantidadePendentes, abrirAutorizacoes } = usarAutorizacoes();
   const [editVisible, setEditVisible] = useState(false);
+  const [passwordVisible, setPasswordVisible] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [validatingPassword, setValidatingPassword] = useState(false);
   const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
   const [cnpjStatus, setCnpjStatus] = useState("idle");
@@ -74,7 +78,7 @@ export default function TelaPerfil() {
     };
   }, [editVisible, form.cnpj, usuario.role]);
 
-  function openEdit() {
+  function prepareEdit() {
     setErrors({});
     setCnpjStatus("idle");
     setCnpjValidado("");
@@ -95,6 +99,32 @@ export default function TelaPerfil() {
       logoUri: ownerUnit?.logoUri || null,
     });
     setEditVisible(true);
+  }
+
+  function openEdit() {
+    setCurrentPassword("");
+    setPasswordError("");
+    setPasswordVisible(true);
+  }
+
+  async function confirmPassword() {
+    if (!currentPassword) {
+      setPasswordError("Informe sua senha atual.");
+      return;
+    }
+
+    setValidatingPassword(true);
+    setPasswordError("");
+    try {
+      await validarSenhaAtual({ cpf: usuario.cpf, senha: currentPassword });
+      setPasswordVisible(false);
+      setCurrentPassword("");
+      prepareEdit();
+    } catch (error) {
+      setPasswordError(error?.status === 401 ? "Senha incorreta." : (error?.message || "Não foi possível validar a senha."));
+    } finally {
+      setValidatingPassword(false);
+    }
   }
 
   async function pickLogo() {
@@ -242,6 +272,36 @@ export default function TelaPerfil() {
           desabilitado={!!edicaoDiagnostico}
         />
       </View>
+
+      <Modal visible={passwordVisible} transparent animationType="fade" onRequestClose={() => !validatingPassword && setPasswordVisible(false)}>
+        <View className="flex-1 items-center justify-center bg-black/40 p-5">
+          <View className="w-full max-w-[440px] rounded-3xl bg-white p-6 hover:shadow-xl transition-all duration-200">
+            <View className="mb-5 flex-row items-center justify-between">
+              <Text className="text-2xl font-black text-ink">Confirme sua senha</Text>
+              <Pressable
+                disabled={validatingPassword}
+                onPress={() => setPasswordVisible(false)}
+                accessibilityLabel="Fechar confirmação de senha"
+              >
+                <Ionicons name="close" size={24} color="#64748B" />
+              </Pressable>
+            </View>
+            <Text className="mb-5 text-slate-500">Digite sua senha atual para acessar a edição dos dados cadastrais.</Text>
+            <CampoApp
+              rotulo="Senha atual"
+              valor={currentPassword}
+              aoAlterarTexto={(value) => { setCurrentPassword(value); setPasswordError(""); }}
+              secureTextEntry
+              autoCapitalize="none"
+              erro={passwordError}
+            />
+            <View className="gap-3">
+              <BotaoPrimario titulo="Acessar edição" aoPressionar={confirmPassword} carregando={validatingPassword} />
+              <BotaoPrimario titulo="Cancelar" variante="secondary" aoPressionar={() => setPasswordVisible(false)} desabilitado={validatingPassword} />
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={editVisible} transparent animationType="fade" onRequestClose={() => setEditVisible(false)}>
         <View className="flex-1 items-center justify-center bg-black/40 p-5">
